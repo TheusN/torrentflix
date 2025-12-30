@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TorrentFlix - Planejamento Full-Stack</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #e50914;
+            --primary-dark: #b20710;
+            --secondary: #6366f1;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #141414;
+            --darker: #0a0a0a;
+            --light: #f1f5f9;
+            --gray: #64748b;
+            --card-bg: rgba(20, 20, 20, 0.8);
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--darker) 0%, #1a1a2e 100%);
+            color: #e2e8f0;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(10, 10, 10, 0.95);
+            backdrop-filter: blur(10px);
+            padding: 2rem;
+            text-align: center;
+            border-bottom: 2px solid var(--primary);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, var(--primary), #ff6b6b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 0.5rem;
+        }
+
+        .header p {
+            color: var(--gray);
+            font-size: 1.1rem;
+        }
+
+        .tech-badges {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .tech-badge {
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .tech-badge.react { background: rgba(97, 218, 251, 0.2); color: #61dafb; border: 1px solid #61dafb; }
+        .tech-badge.typescript { background: rgba(49, 120, 198, 0.2); color: #3178c6; border: 1px solid #3178c6; }
+        .tech-badge.node { background: rgba(104, 160, 99, 0.2); color: #68a063; border: 1px solid #68a063; }
+        .tech-badge.postgres { background: rgba(51, 103, 145, 0.2); color: #336791; border: 1px solid #336791; }
+
+        /* Navigation */
+        .nav {
+            display: flex;
+            justify-content: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: rgba(20, 20, 20, 0.9);
+            flex-wrap: wrap;
+            border-bottom: 1px solid rgba(229, 9, 20, 0.3);
+        }
+
+        .nav a {
+            color: #e2e8f0;
+            text-decoration: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            background: rgba(229, 9, 20, 0.15);
+            transition: all 0.3s;
+            border: 1px solid transparent;
+            font-size: 0.9rem;
+        }
+
+        .nav a:hover {
+            background: var(--primary);
+            border-color: var(--primary);
+            transform: translateY(-2px);
+        }
+
+        /* Main Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        /* Section Styles */
+        .section {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(229, 9, 20, 0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .section-title {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid var(--primary);
+        }
+
+        .section-title h2 {
+            font-size: 1.75rem;
+            color: #f8fafc;
+        }
+
+        .section-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--primary), #ff6b6b);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        /* Architecture Diagram */
+        .architecture-diagram {
+            background: rgba(10, 10, 10, 0.8);
+            border-radius: 12px;
+            padding: 2rem;
+            margin: 1.5rem 0;
+            border: 1px solid rgba(99, 102, 241, 0.3);
+        }
+
+        .arch-row {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 1rem;
+            margin: 1rem 0;
+            flex-wrap: wrap;
+        }
+
+        .arch-box {
+            background: linear-gradient(135deg, rgba(229, 9, 20, 0.2), rgba(255, 107, 107, 0.1));
+            border: 2px solid var(--primary);
+            border-radius: 12px;
+            padding: 1rem 1.5rem;
+            text-align: center;
+            min-width: 160px;
+            transition: all 0.3s;
+        }
+
+        .arch-box:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px rgba(229, 9, 20, 0.4);
+        }
+
+        .arch-box.frontend { border-color: #61dafb; background: linear-gradient(135deg, rgba(97, 218, 251, 0.2), rgba(97, 218, 251, 0.05)); }
+        .arch-box.backend { border-color: #68a063; background: linear-gradient(135deg, rgba(104, 160, 99, 0.2), rgba(104, 160, 99, 0.05)); }
+        .arch-box.service { border-color: var(--secondary); background: linear-gradient(135deg, rgba(99, 102, 241, 0.2), rgba(99, 102, 241, 0.05)); }
+        .arch-box.db { border-color: #336791; background: linear-gradient(135deg, rgba(51, 103, 145, 0.2), rgba(51, 103, 145, 0.05)); }
+
+        .arch-box h4 {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .arch-box p {
+            font-size: 0.8rem;
+            color: var(--gray);
+        }
+
+        .arch-arrow {
+            font-size: 1.5rem;
+            color: var(--primary);
+            animation: pulse 2s infinite;
+        }
+
+        .arch-arrow-down {
+            text-align: center;
+            font-size: 1.5rem;
+            color: var(--primary);
+            margin: 0.5rem 0;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        /* Cards Grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .card {
+            background: rgba(10, 10, 10, 0.8);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border: 1px solid rgba(229, 9, 20, 0.3);
+            transition: all 0.3s;
+        }
+
+        .card:hover {
+            border-color: var(--primary);
+            transform: translateY(-4px);
+            box-shadow: 0 10px 40px rgba(229, 9, 20, 0.2);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        .card-icon.red { background: rgba(229, 9, 20, 0.3); }
+        .card-icon.blue { background: rgba(14, 165, 233, 0.3); }
+        .card-icon.green { background: rgba(34, 197, 94, 0.3); }
+        .card-icon.orange { background: rgba(245, 158, 11, 0.3); }
+        .card-icon.purple { background: rgba(147, 51, 234, 0.3); }
+        .card-icon.cyan { background: rgba(6, 182, 212, 0.3); }
+
+        .card h3 {
+            color: #f8fafc;
+            font-size: 1.1rem;
+        }
+
+        .card p {
+            color: #94a3b8;
+            font-size: 0.95rem;
+        }
+
+        .card ul {
+            list-style: none;
+            margin-top: 1rem;
+        }
+
+        .card ul li {
+            padding: 0.4rem 0;
+            border-bottom: 1px solid rgba(100, 116, 139, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        .card ul li:last-child {
+            border-bottom: none;
+        }
+
+        .card ul li::before {
+            content: ">";
+            color: var(--primary);
+            font-weight: bold;
+        }
+
+        /* Table Styles */
+        .api-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+            overflow: hidden;
+            border-radius: 12px;
+            font-size: 0.9rem;
+        }
+
+        .api-table th,
+        .api-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid rgba(100, 116, 139, 0.2);
+        }
+
+        .api-table th {
+            background: rgba(229, 9, 20, 0.2);
+            color: #f8fafc;
+            font-weight: 600;
+        }
+
+        .api-table tr:hover {
+            background: rgba(229, 9, 20, 0.1);
+        }
+
+        .method {
+            display: inline-block;
+            padding: 0.2rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        .method.get { background: rgba(34, 197, 94, 0.3); color: var(--success); }
+        .method.post { background: rgba(14, 165, 233, 0.3); color: #0ea5e9; }
+        .method.put { background: rgba(245, 158, 11, 0.3); color: var(--warning); }
+        .method.delete { background: rgba(239, 68, 68, 0.3); color: var(--danger); }
+
+        .endpoint {
+            font-family: 'Fira Code', 'Consolas', monospace;
+            color: #a5d6ff;
+        }
+
+        /* Folder Structure */
+        .folder-structure {
+            background: #0d1117;
+            border-radius: 12px;
+            padding: 1.5rem;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            border: 1px solid rgba(100, 116, 139, 0.3);
+            line-height: 1.8;
+        }
+
+        .folder { color: #79c0ff; }
+        .file { color: #a5d6ff; }
+        .file-ts { color: #3178c6; }
+        .file-tsx { color: #61dafb; }
+        .comment { color: #8b949e; }
+
+        /* Timeline / Phases */
+        .phases-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .phase-card {
+            background: rgba(10, 10, 10, 0.8);
+            border-radius: 12px;
+            padding: 1.5rem;
+            border-left: 4px solid var(--primary);
+            transition: all 0.3s;
+        }
+
+        .phase-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 20px rgba(229, 9, 20, 0.2);
+        }
+
+        .phase-card.phase-1 { border-left-color: #22c55e; }
+        .phase-card.phase-2 { border-left-color: #0ea5e9; }
+        .phase-card.phase-3 { border-left-color: #f59e0b; }
+        .phase-card.phase-4 { border-left-color: #8b5cf6; }
+        .phase-card.phase-5 { border-left-color: #ec4899; }
+        .phase-card.phase-6 { border-left-color: #14b8a6; }
+        .phase-card.phase-7 { border-left-color: #e50914; }
+
+        .phase-number {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            text-align: center;
+            line-height: 32px;
+            font-weight: bold;
+            margin-bottom: 0.75rem;
+        }
+
+        .phase-card.phase-1 .phase-number { background: #22c55e; }
+        .phase-card.phase-2 .phase-number { background: #0ea5e9; }
+        .phase-card.phase-3 .phase-number { background: #f59e0b; }
+        .phase-card.phase-4 .phase-number { background: #8b5cf6; }
+        .phase-card.phase-5 .phase-number { background: #ec4899; }
+        .phase-card.phase-6 .phase-number { background: #14b8a6; }
+        .phase-card.phase-7 .phase-number { background: #e50914; }
+
+        .phase-card h4 {
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+            color: #f8fafc;
+        }
+
+        .phase-card ul {
+            list-style: none;
+        }
+
+        .phase-card ul li {
+            padding: 0.3rem 0;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .phase-card ul li::before {
+            content: "[ ]";
+            color: var(--gray);
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+
+        /* Wireframe */
+        .wireframe {
+            background: rgba(10, 10, 10, 0.9);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 1.5rem;
+            border: 1px solid rgba(229, 9, 20, 0.3);
+        }
+
+        .wireframe-header {
+            background: #1a1a1a;
+            padding: 0.75rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: 1px solid var(--primary);
+        }
+
+        .wireframe-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .wireframe-dot.red { background: #ff5f57; }
+        .wireframe-dot.yellow { background: #febc2e; }
+        .wireframe-dot.green { background: #28c840; }
+
+        .wireframe-content {
+            display: flex;
+            min-height: 400px;
+        }
+
+        .wireframe-sidebar {
+            width: 200px;
+            background: rgba(20, 20, 20, 0.9);
+            padding: 1rem;
+            border-right: 1px solid rgba(229, 9, 20, 0.2);
+        }
+
+        .wireframe-logo {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 1.5rem;
+            text-align: center;
+        }
+
+        .wireframe-menu-item {
+            padding: 0.6rem 0.75rem;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .wireframe-menu-item:hover {
+            background: rgba(229, 9, 20, 0.2);
+        }
+
+        .wireframe-menu-item.active {
+            background: var(--primary);
+        }
+
+        .wireframe-main {
+            flex: 1;
+            padding: 1.5rem;
+        }
+
+        .wireframe-stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .wireframe-stat {
+            background: rgba(30, 30, 30, 0.8);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid rgba(229, 9, 20, 0.2);
+        }
+
+        .wireframe-stat-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .wireframe-stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .wireframe-stat-label {
+            font-size: 0.75rem;
+            color: var(--gray);
+        }
+
+        .wireframe-section {
+            background: rgba(30, 30, 30, 0.8);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border: 1px solid rgba(229, 9, 20, 0.2);
+        }
+
+        .wireframe-section h5 {
+            margin-bottom: 0.75rem;
+            color: #f8fafc;
+        }
+
+        .wireframe-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid rgba(100, 116, 139, 0.2);
+            font-size: 0.85rem;
+        }
+
+        .wireframe-item:last-child {
+            border-bottom: none;
+        }
+
+        .wireframe-progress {
+            width: 100px;
+            height: 6px;
+            background: #333;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .wireframe-progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, var(--primary), #ff6b6b);
+            border-radius: 3px;
+        }
+
+        /* Code Block */
+        .code-block {
+            background: #0d1117;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-top: 1rem;
+            overflow-x: auto;
+            font-family: 'Fira Code', 'Consolas', monospace;
+            font-size: 0.85rem;
+            border: 1px solid rgba(100, 116, 139, 0.3);
+        }
+
+        .code-comment { color: #8b949e; }
+        .code-keyword { color: #ff7b72; }
+        .code-string { color: #a5d6ff; }
+        .code-function { color: #d2a8ff; }
+        .code-type { color: #79c0ff; }
+
+        /* Integration Cards */
+        .integration-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .integration-card {
+            background: rgba(10, 10, 10, 0.8);
+            border-radius: 12px;
+            padding: 1.25rem;
+            text-align: center;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .integration-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .integration-card.qbit { border-color: #2e7d32; }
+        .integration-card.qbit:hover { box-shadow: 0 10px 30px rgba(46, 125, 50, 0.3); }
+
+        .integration-card.prowlarr { border-color: #ff9800; }
+        .integration-card.prowlarr:hover { box-shadow: 0 10px 30px rgba(255, 152, 0, 0.3); }
+
+        .integration-card.sonarr { border-color: #00bcd4; }
+        .integration-card.sonarr:hover { box-shadow: 0 10px 30px rgba(0, 188, 212, 0.3); }
+
+        .integration-card.radarr { border-color: #ffc107; }
+        .integration-card.radarr:hover { box-shadow: 0 10px 30px rgba(255, 193, 7, 0.3); }
+
+        .integration-card .icon {
+            font-size: 2.5rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .integration-card h4 {
+            font-size: 1rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .integration-card p {
+            font-size: 0.8rem;
+            color: var(--gray);
+        }
+
+        /* Badge */
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .badge-success { background: rgba(34, 197, 94, 0.3); color: var(--success); }
+        .badge-warning { background: rgba(245, 158, 11, 0.3); color: var(--warning); }
+        .badge-info { background: rgba(14, 165, 233, 0.3); color: #0ea5e9; }
+        .badge-primary { background: rgba(229, 9, 20, 0.3); color: var(--primary); }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            color: var(--gray);
+            border-top: 1px solid rgba(100, 116, 139, 0.2);
+            margin-top: 2rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 1.75rem;
+            }
+
+            .wireframe-content {
+                flex-direction: column;
+            }
+
+            .wireframe-sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid rgba(229, 9, 20, 0.2);
+            }
+
+            .wireframe-stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .arch-row {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <h1>TorrentFlix Dashboard</h1>
+        <p>Planejamento Full-Stack - Sistema de Automacao de Midia</p>
+        <div class="tech-badges">
+            <span class="tech-badge react">React</span>
+            <span class="tech-badge typescript">TypeScript</span>
+            <span class="tech-badge node">Node.js</span>
+            <span class="tech-badge postgres">PostgreSQL</span>
+        </div>
+    </header>
+
+    <!-- Navigation -->
+    <nav class="nav">
+        <a href="#arquitetura">Arquitetura</a>
+        <a href="#integracoes">Integracoes</a>
+        <a href="#estrutura">Estrutura</a>
+        <a href="#api">API Endpoints</a>
+        <a href="#wireframe">Wireframe</a>
+        <a href="#fases">Fases</a>
+    </nav>
+
+    <main class="container">
+        <!-- Arquitetura -->
+        <section id="arquitetura" class="section">
+            <div class="section-title">
+                <div class="section-icon">🏗️</div>
+                <h2>Arquitetura do Sistema</h2>
+            </div>
+
+            <p style="margin-bottom: 1.5rem; font-size: 1.1rem;">
+                O TorrentFlix sera um dashboard unificado que integra todos os servicos de automacao de midia,
+                permitindo buscar, baixar e organizar conteudo atraves de uma interface moderna.
+            </p>
+
+            <div class="architecture-diagram">
+                <!-- Frontend Layer -->
+                <div class="arch-row">
+                    <div class="arch-box frontend" style="min-width: 300px;">
+                        <h4>Frontend (React + TypeScript)</h4>
+                        <p>client/ - Vite + Tailwind CSS</p>
+                    </div>
+                </div>
+
+                <div class="arch-arrow-down">⬇️ HTTP/REST ⬇️</div>
+
+                <!-- Backend Layer -->
+                <div class="arch-row">
+                    <div class="arch-box backend" style="min-width: 300px;">
+                        <h4>Backend (Express + TypeScript)</h4>
+                        <p>server/ - API REST + JWT Auth</p>
+                    </div>
+                    <span class="arch-arrow">↔️</span>
+                    <div class="arch-box db">
+                        <h4>PostgreSQL</h4>
+                        <p>Users, Tokens, History</p>
+                    </div>
+                </div>
+
+                <div class="arch-arrow-down">⬇️ APIs Externas ⬇️</div>
+
+                <!-- Services Layer -->
+                <div class="arch-row">
+                    <div class="arch-box service">
+                        <h4>qBittorrent</h4>
+                        <p>Downloads</p>
+                    </div>
+                    <div class="arch-box service">
+                        <h4>Jackett</h4>
+                        <p>Busca</p>
+                    </div>
+                    <div class="arch-box service">
+                        <h4>Sonarr</h4>
+                        <p>Series</p>
+                    </div>
+                    <div class="arch-box service">
+                        <h4>Radarr</h4>
+                        <p>Filmes</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="cards-grid">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon blue">⚛️</div>
+                        <h3>Frontend React</h3>
+                    </div>
+                    <p>Interface moderna e responsiva</p>
+                    <ul>
+                        <li>React 18 + TypeScript</li>
+                        <li>Vite para build rapido</li>
+                        <li>Tailwind CSS para estilos</li>
+                        <li>React Query para cache</li>
+                        <li>React Router para navegacao</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon green">🟢</div>
+                        <h3>Backend Node.js</h3>
+                    </div>
+                    <p>API REST robusta e tipada</p>
+                    <ul>
+                        <li>Express + TypeScript</li>
+                        <li>Sequelize ORM</li>
+                        <li>JWT Authentication</li>
+                        <li>Rate Limiting</li>
+                        <li>Error Handling</li>
+                    </ul>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon purple">🔐</div>
+                        <h3>Autenticacao JWT</h3>
+                    </div>
+                    <p>Sistema seguro de login</p>
+                    <ul>
+                        <li>Access Token (15min)</li>
+                        <li>Refresh Token (7 dias)</li>
+                        <li>Bcrypt para senhas</li>
+                        <li>Roles (admin/user)</li>
+                        <li>Protected Routes</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Integracoes -->
+        <section id="integracoes" class="section">
+            <div class="section-title">
+                <div class="section-icon">🔗</div>
+                <h2>Integracoes com Servicos</h2>
+            </div>
+
+            <div class="integration-grid">
+                <div class="integration-card qbit">
+                    <div class="icon">📥</div>
+                    <h4>qBittorrent</h4>
+                    <p>Cliente de downloads</p>
+                    <span class="badge badge-success">:8080</span>
+                </div>
+
+                <div class="integration-card prowlarr">
+                    <div class="icon">🔍</div>
+                    <h4>Jackett</h4>
+                    <p>Indexadores</p>
+                    <span class="badge badge-warning">:9117</span>
+                </div>
+
+                <div class="integration-card sonarr">
+                    <div class="icon">📺</div>
+                    <h4>Sonarr</h4>
+                    <p>Gerenciador de Series</p>
+                    <span class="badge badge-info">:8989</span>
+                </div>
+
+                <div class="integration-card radarr">
+                    <div class="icon">🎬</div>
+                    <h4>Radarr</h4>
+                    <p>Gerenciador de Filmes</p>
+                    <span class="badge badge-warning">:7878</span>
+                </div>
+            </div>
+
+            <h3 style="margin: 2rem 0 1rem; color: var(--primary);">APIs Utilizadas:</h3>
+
+            <table class="api-table">
+                <thead>
+                    <tr>
+                        <th>Servico</th>
+                        <th>Base URL</th>
+                        <th>Autenticacao</th>
+                        <th>Funcao</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><strong>qBittorrent</strong></td>
+                        <td class="endpoint">/api/v2</td>
+                        <td>Cookie Session</td>
+                        <td>Add, List, Pause, Resume, Delete torrents</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Jackett</strong></td>
+                        <td class="endpoint">/api/v2.0</td>
+                        <td>apikey Query Param</td>
+                        <td>Search torrents, List indexers</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Sonarr</strong></td>
+                        <td class="endpoint">/api/v3</td>
+                        <td>X-Api-Key Header</td>
+                        <td>Add, List, Monitor series</td>
+                    </tr>
+                    <tr>
+                        <td><strong>Radarr</strong></td>
+                        <td class="endpoint">/api/v3</td>
+                        <td>X-Api-Key Header</td>
+                        <td>Add, List, Monitor movies</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Estrutura de Pastas -->
+        <section id="estrutura" class="section">
+            <div class="section-title">
+                <div class="section-icon">📁</div>
+                <h2>Estrutura do Projeto</h2>
+            </div>
+
+            <div class="folder-structure">
+<span class="folder">torrentflix/</span>
+├── <span class="folder">server/</span>                         <span class="comment"># Backend TypeScript</span>
+│   ├── <span class="folder">src/</span>
+│   │   ├── <span class="file-ts">app.ts</span>                  <span class="comment"># Entry point</span>
+│   │   ├── <span class="file-ts">server.ts</span>               <span class="comment"># Express config</span>
+│   │   │
+│   │   ├── <span class="folder">config/</span>
+│   │   │   ├── <span class="file-ts">database.ts</span>         <span class="comment"># PostgreSQL + Sequelize</span>
+│   │   │   └── <span class="file-ts">services.ts</span>         <span class="comment"># URLs/Keys dos *arr</span>
+│   │   │
+│   │   ├── <span class="folder">middleware/</span>
+│   │   │   ├── <span class="file-ts">auth.middleware.ts</span>  <span class="comment"># JWT verification</span>
+│   │   │   └── <span class="file-ts">error.middleware.ts</span> <span class="comment"># Error handler</span>
+│   │   │
+│   │   ├── <span class="folder">models/</span>
+│   │   │   ├── <span class="file-ts">User.ts</span>             <span class="comment"># User model</span>
+│   │   │   └── <span class="file-ts">RefreshToken.ts</span>     <span class="comment"># Token model</span>
+│   │   │
+│   │   ├── <span class="folder">services/</span>
+│   │   │   ├── <span class="file-ts">auth.service.ts</span>     <span class="comment"># Login/Register</span>
+│   │   │   ├── <span class="file-ts">qbittorrent.service.ts</span>
+│   │   │   ├── <span class="file-ts">jackett.service.ts</span>
+│   │   │   ├── <span class="file-ts">sonarr.service.ts</span>
+│   │   │   ├── <span class="file-ts">radarr.service.ts</span>
+│   │   │   └── <span class="file-ts">streaming.service.ts</span>
+│   │   │
+│   │   ├── <span class="folder">controllers/</span>
+│   │   │   ├── <span class="file-ts">auth.controller.ts</span>
+│   │   │   ├── <span class="file-ts">search.controller.ts</span>
+│   │   │   ├── <span class="file-ts">download.controller.ts</span>
+│   │   │   └── <span class="file-ts">media.controller.ts</span>
+│   │   │
+│   │   ├── <span class="folder">routes/</span>
+│   │   │   └── <span class="file-ts">*.routes.ts</span>
+│   │   │
+│   │   └── <span class="folder">types/</span>
+│   │       └── <span class="file-ts">*.types.ts</span>
+│   │
+│   ├── <span class="file">package.json</span>
+│   └── <span class="file">tsconfig.json</span>
+│
+├── <span class="folder">client/</span>                         <span class="comment"># Frontend React + Vite</span>
+│   ├── <span class="folder">src/</span>
+│   │   ├── <span class="file-tsx">main.tsx</span>
+│   │   ├── <span class="file-tsx">App.tsx</span>
+│   │   │
+│   │   ├── <span class="folder">api/</span>                    <span class="comment"># API clients</span>
+│   │   │   ├── <span class="file-ts">client.ts</span>           <span class="comment"># Axios instance</span>
+│   │   │   ├── <span class="file-ts">auth.api.ts</span>
+│   │   │   ├── <span class="file-ts">search.api.ts</span>
+│   │   │   └── <span class="file-ts">downloads.api.ts</span>
+│   │   │
+│   │   ├── <span class="folder">components/</span>
+│   │   │   ├── <span class="folder">layout/</span>             <span class="comment"># Header, Sidebar, Layout</span>
+│   │   │   ├── <span class="folder">auth/</span>               <span class="comment"># LoginForm, ProtectedRoute</span>
+│   │   │   ├── <span class="folder">search/</span>             <span class="comment"># SearchBar, SearchResults</span>
+│   │   │   ├── <span class="folder">downloads/</span>          <span class="comment"># DownloadList, DownloadCard</span>
+│   │   │   ├── <span class="folder">player/</span>             <span class="comment"># VideoPlayer</span>
+│   │   │   └── <span class="folder">dashboard/</span>          <span class="comment"># StatsCards, RecentActivity</span>
+│   │   │
+│   │   ├── <span class="folder">pages/</span>
+│   │   │   ├── <span class="file-tsx">Login.tsx</span>
+│   │   │   ├── <span class="file-tsx">Dashboard.tsx</span>
+│   │   │   ├── <span class="file-tsx">Search.tsx</span>
+│   │   │   ├── <span class="file-tsx">Downloads.tsx</span>
+│   │   │   ├── <span class="file-tsx">Player.tsx</span>
+│   │   │   ├── <span class="file-tsx">Series.tsx</span>
+│   │   │   └── <span class="file-tsx">Movies.tsx</span>
+│   │   │
+│   │   ├── <span class="folder">hooks/</span>
+│   │   │   └── <span class="file-ts">useAuth.ts</span>
+│   │   │
+│   │   └── <span class="folder">context/</span>
+│   │       └── <span class="file-tsx">AuthContext.tsx</span>
+│   │
+│   ├── <span class="file">package.json</span>
+│   ├── <span class="file">vite.config.ts</span>
+│   └── <span class="file">tailwind.config.js</span>
+│
+├── <span class="file">docker-compose.yml</span>
+├── <span class="file">Dockerfile</span>
+└── <span class="file">.env.example</span>
+            </div>
+        </section>
+
+        <!-- API Endpoints -->
+        <section id="api" class="section">
+            <div class="section-title">
+                <div class="section-icon">🔌</div>
+                <h2>API Endpoints</h2>
+            </div>
+
+            <h3 style="margin-bottom: 1rem; color: var(--primary);">Autenticacao</h3>
+            <table class="api-table">
+                <thead>
+                    <tr>
+                        <th>Metodo</th>
+                        <th>Endpoint</th>
+                        <th>Descricao</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="method post">POST</span></td>
+                        <td class="endpoint">/api/auth/register</td>
+                        <td>Registrar novo usuario</td>
+                    </tr>
+                    <tr>
+                        <td><span class="method post">POST</span></td>
+                        <td class="endpoint">/api/auth/login</td>
+                        <td>Login (retorna JWT)</td>
+                    </tr>
+                    <tr>
+                        <td><span class="method post">POST</span></td>
+                        <td class="endpoint">/api/auth/refresh</td>
+                        <td>Renovar access token</td>
+                    </tr>
+                    <tr>
+                        <td><span class="method get">GET</span></td>
+                        <td class="endpoint">/api/auth/me</td>
+                        <td>Usuario atual</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3 style="margin: 2rem 0 1rem; color: var(--primary);">Busca (Jackett)</h3>
+            <table class="api-table">
+                <thead>
+                    <tr>
+                        <th>Metodo</th>
+                        <th>Endpoint</th>
+                        <th>Descricao</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="method get">GET</span></td>
+                        <td class="endpoint">/api/search?query=&type=&categories=</td>
+                        <td>Buscar torrents</td>
+                    </tr>
+                    <tr>
+                        <td><span class="method get">GET</span></td>
+                        <td class="endpoint">/api/search/indexers</td>
+                        <td>Listar indexadores</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3 style="margin: 2rem 0 1rem; color: var(--primary);">Downloads (qBittorrent)</h3>
+            <table class="api-table">
+                <thead>
+                    <tr>
+                        <th>Metodo</th>
+                        <th>Endpoint</th>
+                        <th>Descricao</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="method get">GET</span></td>
+                        <td class="endpoint">/api/downloads</td>
+                        <td>Listar downloads</td>
+                    </tr>
+                    <tr>
+                        <td><span class="method post">POST</span></td>
+                        <td class="endpoint">/api/downloads</td>
+                        <td>Iniciar download</td>
+                    </tr>
+                    <tr>
+                        <td><span class="method get">GET</span></td>
+                        <td class="endpoint">/api/downloads/:hash</td>
+                        <td>Detalhes do download</td>
+                    </tr>
+                    <tr>
+                        <td><span class="method post">POST</span></td>
+                        <td class="endpoint">/api/downloads/:hash/pause</td>
+                        <td>Pausar download</td>
+                    </tr>
+                    <tr>
+                        <td><span class="method post">POST</span></td>
+                        <td class="endpoint">/api/downloads/:hash/resume</td>
+                        <td>Retomar download</td>
+                    </tr>
+                    <tr>
+                        <td><span class="method delete">DELETE</span></td>
+                        <td class="endpoint">/api/downloads/:hash</td>
+                        <td>Remover download</td>
+                    </tr>
+                    <tr>
+                        <td><span class="method get">GET</span></td>
+                        <td class="endpoint">/api/downloads/:hash/files</td>
+                        <td>Arquivos do torrent</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3 style="margin: 2rem 0 1rem; color: var(--primary);">Streaming</h3>
+            <table class="api-table">
+                <thead>
+                    <tr>
+                        <th>Metodo</th>
+                        <th>Endpoint</th>
+                        <th>Descricao</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="method get">GET</span></td>
+                        <td class="endpoint">/api/stream/:hash/:fileIndex</td>
+                        <td>Stream de arquivo (suporta range requests)</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3 style="margin: 2rem 0 1rem; color: var(--primary);">Series (Sonarr) & Filmes (Radarr)</h3>
+            <table class="api-table">
+                <thead>
+                    <tr>
+                        <th>Metodo</th>
+                        <th>Endpoint</th>
+                        <th>Descricao</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="method get">GET</span></td>
+                        <td class="endpoint">/api/series</td>
+                        <td>Listar series</td>
+                    </tr>
+                    <tr>
+                        <td><span class="method post">POST</span></td>
+                        <td class="endpoint">/api/series</td>
+                        <td>Adicionar serie</td>
+                    </tr>
+                    <tr>
+                        <td><span class="method get">GET</span></td>
+                        <td class="endpoint">/api/series/lookup?term=</td>
+                        <td>Buscar serie</td>
+                    </tr>
+                    <tr>
+                        <td><span class="method get">GET</span></td>
+                        <td class="endpoint">/api/movies</td>
+                        <td>Listar filmes</td>
+                    </tr>
+                    <tr>
+                        <td><span class="method post">POST</span></td>
+                        <td class="endpoint">/api/movies</td>
+                        <td>Adicionar filme</td>
+                    </tr>
+                    <tr>
+                        <td><span class="method get">GET</span></td>
+                        <td class="endpoint">/api/movies/lookup?term=</td>
+                        <td>Buscar filme</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3 style="margin: 2rem 0 1rem; color: var(--primary);">Dashboard</h3>
+            <table class="api-table">
+                <thead>
+                    <tr>
+                        <th>Metodo</th>
+                        <th>Endpoint</th>
+                        <th>Descricao</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><span class="method get">GET</span></td>
+                        <td class="endpoint">/api/dashboard</td>
+                        <td>Dados consolidados (downloads, series, filmes, disco)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </section>
+
+        <!-- Wireframe -->
+        <section id="wireframe" class="section">
+            <div class="section-title">
+                <div class="section-icon">🖥️</div>
+                <h2>Wireframe do Dashboard</h2>
+            </div>
+
+            <p style="margin-bottom: 1rem;">
+                Preview da interface do TorrentFlix Dashboard:
+            </p>
+
+            <div class="wireframe">
+                <div class="wireframe-header">
+                    <div class="wireframe-dot red"></div>
+                    <div class="wireframe-dot yellow"></div>
+                    <div class="wireframe-dot green"></div>
+                    <span style="margin-left: 1rem; color: var(--gray);">TorrentFlix Dashboard</span>
+                </div>
+                <div class="wireframe-content">
+                    <div class="wireframe-sidebar">
+                        <div class="wireframe-logo">TorrentFlix</div>
+                        <div class="wireframe-menu-item active">🏠 Dashboard</div>
+                        <div class="wireframe-menu-item">🔍 Buscar</div>
+                        <div class="wireframe-menu-item">📥 Downloads</div>
+                        <div class="wireframe-menu-item">📺 Series</div>
+                        <div class="wireframe-menu-item">🎬 Filmes</div>
+                        <div class="wireframe-menu-item">▶️ Player</div>
+                        <div class="wireframe-menu-item">⚙️ Config</div>
+                    </div>
+                    <div class="wireframe-main">
+                        <div class="wireframe-stats">
+                            <div class="wireframe-stat">
+                                <div class="wireframe-stat-icon">📥</div>
+                                <div class="wireframe-stat-value">5</div>
+                                <div class="wireframe-stat-label">Downloads Ativos</div>
+                            </div>
+                            <div class="wireframe-stat">
+                                <div class="wireframe-stat-icon">📺</div>
+                                <div class="wireframe-stat-value">47</div>
+                                <div class="wireframe-stat-label">Series</div>
+                            </div>
+                            <div class="wireframe-stat">
+                                <div class="wireframe-stat-icon">🎬</div>
+                                <div class="wireframe-stat-value">183</div>
+                                <div class="wireframe-stat-label">Filmes</div>
+                            </div>
+                            <div class="wireframe-stat">
+                                <div class="wireframe-stat-icon">💾</div>
+                                <div class="wireframe-stat-value">2.4TB</div>
+                                <div class="wireframe-stat-label">Usado</div>
+                            </div>
+                        </div>
+
+                        <div class="wireframe-section">
+                            <h5>Downloads em Andamento</h5>
+                            <div class="wireframe-item">
+                                <span>Movie.2024.1080p.WEB-DL.mkv</span>
+                                <div class="wireframe-progress">
+                                    <div class="wireframe-progress-bar" style="width: 67%;"></div>
+                                </div>
+                            </div>
+                            <div class="wireframe-item">
+                                <span>Series.S01E05.720p.mkv</span>
+                                <div class="wireframe-progress">
+                                    <div class="wireframe-progress-bar" style="width: 45%;"></div>
+                                </div>
+                            </div>
+                            <div class="wireframe-item">
+                                <span>Documentary.2024.4K.mkv</span>
+                                <div class="wireframe-progress">
+                                    <div class="wireframe-progress-bar" style="width: 23%;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="wireframe-section">
+                            <h5>Atividade Recente</h5>
+                            <div class="wireframe-item">
+                                <span>Breaking Bad adicionado ao Sonarr</span>
+                                <span style="color: var(--gray);">2 min</span>
+                            </div>
+                            <div class="wireframe-item">
+                                <span>Inception baixado com sucesso</span>
+                                <span style="color: var(--gray);">15 min</span>
+                            </div>
+                            <div class="wireframe-item">
+                                <span>Novo indexador configurado</span>
+                                <span style="color: var(--gray);">1 hora</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Fases de Implementacao -->
+        <section id="fases" class="section">
+            <div class="section-title">
+                <div class="section-icon">📋</div>
+                <h2>Fases de Implementacao</h2>
+            </div>
+
+            <div class="phases-container">
+                <div class="phase-card phase-1">
+                    <div class="phase-number">1</div>
+                    <h4>Setup + Estrutura Base</h4>
+                    <ul>
+                        <li>Criar estrutura server/ TypeScript</li>
+                        <li>Configurar Express + middlewares</li>
+                        <li>Configurar Sequelize + PostgreSQL</li>
+                        <li>Criar client/ com Vite + React</li>
+                        <li>Configurar Tailwind CSS</li>
+                    </ul>
+                </div>
+
+                <div class="phase-card phase-2">
+                    <div class="phase-number">2</div>
+                    <h4>Autenticacao JWT</h4>
+                    <ul>
+                        <li>Modelo User + RefreshToken</li>
+                        <li>AuthService (login/register)</li>
+                        <li>Endpoints de autenticacao</li>
+                        <li>AuthContext no React</li>
+                        <li>Pagina de Login</li>
+                    </ul>
+                </div>
+
+                <div class="phase-card phase-3">
+                    <div class="phase-number">3</div>
+                    <h4>Integracao qBittorrent</h4>
+                    <ul>
+                        <li>QBittorrentService</li>
+                        <li>Endpoints de downloads</li>
+                        <li>StreamingService</li>
+                        <li>Pagina de Downloads</li>
+                        <li>Componentes de download</li>
+                    </ul>
+                </div>
+
+                <div class="phase-card phase-4">
+                    <div class="phase-number">4</div>
+                    <h4>Integracao Jackett</h4>
+                    <ul>
+                        <li>JackettService</li>
+                        <li>Endpoints de busca</li>
+                        <li>Pagina de Search</li>
+                        <li>SearchBar component</li>
+                        <li>SearchResults component</li>
+                    </ul>
+                </div>
+
+                <div class="phase-card phase-5">
+                    <div class="phase-number">5</div>
+                    <h4>Integracao Sonarr/Radarr</h4>
+                    <ul>
+                        <li>SonarrService</li>
+                        <li>RadarrService</li>
+                        <li>Endpoints de media</li>
+                        <li>Paginas Series/Movies</li>
+                        <li>Cards de media</li>
+                    </ul>
+                </div>
+
+                <div class="phase-card phase-6">
+                    <div class="phase-number">6</div>
+                    <h4>Dashboard + Player</h4>
+                    <ul>
+                        <li>Dashboard page</li>
+                        <li>StatsCards component</li>
+                        <li>RecentActivity component</li>
+                        <li>VideoPlayer component</li>
+                        <li>Layout/Sidebar/Header</li>
+                    </ul>
+                </div>
+
+                <div class="phase-card phase-7">
+                    <div class="phase-number">7</div>
+                    <h4>Docker + Deploy</h4>
+                    <ul>
+                        <li>Dockerfile multi-stage</li>
+                        <li>docker-compose.yml</li>
+                        <li>Configurar EasyPanel</li>
+                        <li>Conectar rede Docker</li>
+                        <li>Testar producao</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Variaveis de Ambiente -->
+        <section class="section">
+            <div class="section-title">
+                <div class="section-icon">🔐</div>
+                <h2>Variaveis de Ambiente</h2>
+            </div>
+
+            <div class="code-block">
+<span class="code-comment"># .env.example</span>
+
+<span class="code-comment"># App</span>
+<span class="code-keyword">NODE_ENV</span>=development
+<span class="code-keyword">PORT</span>=3000
+
+<span class="code-comment"># Database</span>
+<span class="code-keyword">DATABASE_URL</span>=<span class="code-string">postgresql://torrentflix:password@localhost:5432/torrentflix</span>
+
+<span class="code-comment"># JWT</span>
+<span class="code-keyword">JWT_SECRET</span>=<span class="code-string">seu-secret-super-seguro</span>
+<span class="code-keyword">JWT_REFRESH_SECRET</span>=<span class="code-string">seu-refresh-secret</span>
+<span class="code-keyword">JWT_ACCESS_EXPIRY</span>=15m
+<span class="code-keyword">JWT_REFRESH_EXPIRY</span>=7d
+
+<span class="code-comment"># qBittorrent</span>
+<span class="code-keyword">QBITTORRENT_HOST</span>=<span class="code-string">http://localhost</span>
+<span class="code-keyword">QBITTORRENT_PORT</span>=8080
+<span class="code-keyword">QBITTORRENT_USER</span>=admin
+<span class="code-keyword">QBITTORRENT_PASS</span>=adminadmin
+
+<span class="code-comment"># Jackett</span>
+<span class="code-keyword">JACKETT_HOST</span>=<span class="code-string">http://localhost</span>
+<span class="code-keyword">JACKETT_PORT</span>=9117
+<span class="code-keyword">JACKETT_API_KEY</span>=<span class="code-string">sua-api-key</span>
+
+<span class="code-comment"># Sonarr</span>
+<span class="code-keyword">SONARR_HOST</span>=<span class="code-string">http://localhost</span>
+<span class="code-keyword">SONARR_PORT</span>=8989
+<span class="code-keyword">SONARR_API_KEY</span>=<span class="code-string">sua-api-key</span>
+
+<span class="code-comment"># Radarr</span>
+<span class="code-keyword">RADARR_HOST</span>=<span class="code-string">http://localhost</span>
+<span class="code-keyword">RADARR_PORT</span>=7878
+<span class="code-keyword">RADARR_API_KEY</span>=<span class="code-string">sua-api-key</span>
+
+<span class="code-comment"># Media Paths</span>
+<span class="code-keyword">DOWNLOAD_PATH</span>=/downloads
+<span class="code-keyword">MEDIA_PATH</span>=/media
+            </div>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <p>TorrentFlix Dashboard - Planejamento Full-Stack</p>
+        <p style="margin-top: 0.5rem; font-size: 0.9rem;">
+            Stack: React + TypeScript + Node.js + PostgreSQL
+        </p>
+    </footer>
+
+    <script>
+        // Smooth scroll para navegacao
+        document.querySelectorAll('.nav a').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
+
+        // Highlight ativo na navegacao
+        window.addEventListener('scroll', () => {
+            const sections = document.querySelectorAll('.section');
+            const navLinks = document.querySelectorAll('.nav a');
+
+            let current = '';
+            sections.forEach(section => {
+                const sectionTop = section.offsetTop - 200;
+                if (scrollY >= sectionTop) {
+                    current = section.getAttribute('id');
+                }
+            });
+
+            navLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && href.startsWith('#')) {
+                    link.style.background = href === '#' + current
+                        ? 'var(--primary)'
+                        : 'rgba(229, 9, 20, 0.15)';
+                }
+            });
+        });
+
+        // Animate phase cards on scroll
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.style.opacity = '1';
+                    entry.target.style.transform = 'translateX(0)';
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.phase-card').forEach((card, index) => {
+            card.style.opacity = '0';
+            card.style.transform = 'translateX(-20px)';
+            card.style.transition = `all 0.5s ease ${index * 0.1}s`;
+            observer.observe(card);
+        });
+    </script>
+</body>
+</html>

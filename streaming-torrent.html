@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TorrentFlix - Streaming de Torrents</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: #fff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            background: linear-gradient(90deg, #e94560, #0f3460);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .input-section {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .input-section label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        #magnetInput {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.2);
+            color: #fff;
+            font-size: 1rem;
+        }
+
+        #magnetInput::placeholder {
+            color: rgba(255,255,255,0.5);
+        }
+
+        button {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(90deg, #e94560, #0f3460);
+            color: #fff;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(233, 69, 96, 0.4);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .video-section {
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        #videoPlayer {
+            width: 100%;
+            max-height: 500px;
+            display: block;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        #downloadProgress {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #e94560, #0f3460);
+            transition: width 0.3s ease;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-card .value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #e94560;
+        }
+
+        .stat-card .label {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        #status {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .files-list {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .files-list h3 {
+            margin-bottom: 15px;
+        }
+
+        .file-item {
+            padding: 10px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .file-item:hover {
+            background: rgba(233, 69, 96, 0.3);
+        }
+
+        .file-item.active {
+            background: rgba(233, 69, 96, 0.5);
+            border: 2px solid #e94560;
+        }
+
+        .file-name {
+            font-weight: bold;
+        }
+
+        .file-size {
+            font-size: 0.85rem;
+            opacity: 0.7;
+        }
+
+        .demo-links {
+            margin-top: 15px;
+            padding: 10px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+        }
+
+        .demo-links p {
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .demo-link {
+            display: block;
+            padding: 8px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 5px;
+            margin-bottom: 5px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            word-break: break-all;
+        }
+
+        .demo-link:hover {
+            background: rgba(233, 69, 96, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TorrentFlix</h1>
+
+        <div class="input-section">
+            <label>Cole um Magnet Link ou URL de Torrent:</label>
+            <div class="input-group">
+                <input type="text" id="magnetInput" placeholder="magnet:?xt=urn:btih:... ou https://...torrent">
+                <button id="startBtn" onclick="startTorrent()">Reproduzir</button>
+            </div>
+
+            <div class="demo-links">
+                <p>Links de demonstracao (torrents legais):</p>
+                <div class="demo-link" onclick="useDemoLink('sintel')">
+                    Sintel (Open Movie) - Animacao curta
+                </div>
+                <div class="demo-link" onclick="useDemoLink('cosmos')">
+                    Cosmos Laundromat - Animacao Blender
+                </div>
+                <div class="demo-link" onclick="useDemoLink('bigbuck')">
+                    Big Buck Bunny - Classico Open Source
+                </div>
+            </div>
+        </div>
+
+        <div id="status">Aguardando magnet link...</div>
+
+        <div class="video-section">
+            <video id="videoPlayer" controls></video>
+            <div class="progress-bar">
+                <div id="downloadProgress"></div>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="value" id="peers">0</div>
+                <div class="label">Peers Conectados</div>
+            </div>
+            <div class="stat-card">
+                <div class="value" id="downloaded">0 MB</div>
+                <div class="label">Baixado</div>
+            </div>
+            <div class="stat-card">
+                <div class="value" id="downloadSpeed">0 KB/s</div>
+                <div class="label">Velocidade Download</div>
+            </div>
+            <div class="stat-card">
+                <div class="value" id="uploadSpeed">0 KB/s</div>
+                <div class="label">Velocidade Upload</div>
+            </div>
+            <div class="stat-card">
+                <div class="value" id="remaining">--</div>
+                <div class="label">Tempo Restante</div>
+            </div>
+            <div class="stat-card">
+                <div class="value" id="progress">0%</div>
+                <div class="label">Progresso</div>
+            </div>
+        </div>
+
+        <div class="files-list" id="filesList">
+            <h3>Arquivos no Torrent:</h3>
+            <div id="filesContainer"></div>
+        </div>
+    </div>
+
+    <!-- WebTorrent via CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/webtorrent@latest/webtorrent.min.js"></script>
+
+    <script>
+        let client = null;
+        let currentTorrent = null;
+
+        // Links de demonstracao (torrents legais/open source)
+        const demoLinks = {
+            sintel: 'magnet:?xt=urn:btih:08ada5a7a6183aae1e09d831df6748d566095a10&dn=Sintel&tr=udp%3A%2F%2Fexplodie.org%3A6969&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.empire-js.us%3A1337&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337&tr=wss%3A%2F%2Ftracker.btorrent.xyz&tr=wss%3A%2F%2Ftracker.fastcast.nz&tr=wss%3A%2F%2Ftracker.openwebtorrent.com&ws=https%3A%2F%2Fwebtorrent.io%2Ftorrents%2F',
+            cosmos: 'magnet:?xt=urn:btih:c9e15763f722f23e98a29decdfae341b98d53056&dn=Cosmos+Laundromat&tr=udp%3A%2F%2Fexplodie.org%3A6969&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.empire-js.us%3A1337&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337&tr=wss%3A%2F%2Ftracker.btorrent.xyz&tr=wss%3A%2F%2Ftracker.fastcast.nz&tr=wss%3A%2F%2Ftracker.openwebtorrent.com',
+            bigbuck: 'magnet:?xt=urn:btih:dd8255ecdc7ca55fb0bbf81323d87062db1f6d1c&dn=Big+Buck+Bunny&tr=udp%3A%2F%2Fexplodie.org%3A6969&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Ftracker.empire-js.us%3A1337&tr=udp%3A%2F%2Ftracker.leechers-paradise.org%3A6969&tr=udp%3A%2F%2Ftracker.opentrackr.org%3A1337&tr=wss%3A%2F%2Ftracker.btorrent.xyz&tr=wss%3A%2F%2Ftracker.fastcast.nz&tr=wss%3A%2F%2Ftracker.openwebtorrent.com'
+        };
+
+        function useDemoLink(name) {
+            document.getElementById('magnetInput').value = demoLinks[name];
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function formatTime(seconds) {
+            if (!seconds || seconds === Infinity) return '--';
+            const h = Math.floor(seconds / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            const s = Math.floor(seconds % 60);
+            if (h > 0) return `${h}h ${m}m`;
+            if (m > 0) return `${m}m ${s}s`;
+            return `${s}s`;
+        }
+
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message;
+        }
+
+        function updateStats(torrent) {
+            document.getElementById('peers').textContent = torrent.numPeers;
+            document.getElementById('downloaded').textContent = formatBytes(torrent.downloaded);
+            document.getElementById('downloadSpeed').textContent = formatBytes(torrent.downloadSpeed) + '/s';
+            document.getElementById('uploadSpeed').textContent = formatBytes(torrent.uploadSpeed) + '/s';
+            document.getElementById('remaining').textContent = formatTime(torrent.timeRemaining / 1000);
+            document.getElementById('progress').textContent = (torrent.progress * 100).toFixed(1) + '%';
+            document.getElementById('downloadProgress').style.width = (torrent.progress * 100) + '%';
+        }
+
+        function displayFiles(torrent) {
+            const container = document.getElementById('filesContainer');
+            const filesList = document.getElementById('filesList');
+            container.innerHTML = '';
+
+            torrent.files.forEach((file, index) => {
+                const div = document.createElement('div');
+                div.className = 'file-item';
+                div.innerHTML = `
+                    <div class="file-name">${file.name}</div>
+                    <div class="file-size">${formatBytes(file.length)}</div>
+                `;
+                div.onclick = () => playFile(file, div);
+                container.appendChild(div);
+            });
+
+            filesList.style.display = 'block';
+        }
+
+        function playFile(file, element) {
+            // Remove active de todos
+            document.querySelectorAll('.file-item').forEach(el => el.classList.remove('active'));
+            element.classList.add('active');
+
+            const video = document.getElementById('videoPlayer');
+
+            // Verifica se e um arquivo de video/audio
+            const videoExtensions = ['.mp4', '.webm', '.mkv', '.avi', '.mov', '.ogv', '.m4v'];
+            const audioExtensions = ['.mp3', '.ogg', '.wav', '.flac', '.m4a'];
+            const isVideo = videoExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+            const isAudio = audioExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+
+            if (isVideo || isAudio) {
+                updateStatus(`Reproduzindo: ${file.name}`);
+
+                // Usa streamTo para streaming direto
+                file.streamTo(video);
+
+                video.onloadedmetadata = () => {
+                    video.play().catch(e => console.log('Autoplay bloqueado:', e));
+                };
+            } else {
+                updateStatus(`Arquivo nao reproduzivel: ${file.name}`);
+            }
+        }
+
+        async function startTorrent() {
+            const magnetInput = document.getElementById('magnetInput');
+            const torrentId = magnetInput.value.trim();
+
+            if (!torrentId) {
+                updateStatus('Por favor, insira um magnet link ou URL de torrent');
+                return;
+            }
+
+            // Desabilita botao
+            const btn = document.getElementById('startBtn');
+            btn.disabled = true;
+            btn.textContent = 'Carregando...';
+
+            // Destroi cliente anterior se existir
+            if (client) {
+                client.destroy();
+            }
+
+            // Cria novo cliente WebTorrent
+            client = new WebTorrent();
+
+            updateStatus('Conectando aos peers...');
+
+            client.on('error', (err) => {
+                updateStatus('Erro: ' + err.message);
+                btn.disabled = false;
+                btn.textContent = 'Reproduzir';
+            });
+
+            try {
+                currentTorrent = client.add(torrentId, (torrent) => {
+                    updateStatus(`Torrent carregado: ${torrent.name}`);
+                    btn.disabled = false;
+                    btn.textContent = 'Reproduzir';
+
+                    // Mostra arquivos
+                    displayFiles(torrent);
+
+                    // Encontra primeiro arquivo de video
+                    const videoFile = torrent.files.find(file => {
+                        const name = file.name.toLowerCase();
+                        return name.endsWith('.mp4') ||
+                               name.endsWith('.webm') ||
+                               name.endsWith('.mkv') ||
+                               name.endsWith('.avi') ||
+                               name.endsWith('.mov');
+                    });
+
+                    if (videoFile) {
+                        // Auto-play do primeiro video encontrado
+                        const fileElements = document.querySelectorAll('.file-item');
+                        const videoIndex = torrent.files.indexOf(videoFile);
+                        playFile(videoFile, fileElements[videoIndex]);
+                    }
+
+                    // Atualiza estatisticas a cada 500ms
+                    setInterval(() => updateStats(torrent), 500);
+
+                    torrent.on('done', () => {
+                        updateStatus('Download completo! Seeding...');
+                    });
+                });
+            } catch (err) {
+                updateStatus('Erro ao adicionar torrent: ' + err.message);
+                btn.disabled = false;
+                btn.textContent = 'Reproduzir';
+            }
+        }
+
+        // Permite pressionar Enter no input
+        document.getElementById('magnetInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                startTorrent();
+            }
+        });
+    </script>
+</body>
+</html>
