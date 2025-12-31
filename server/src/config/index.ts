@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -7,6 +8,38 @@ const __dirname = path.dirname(__filename);
 
 // Load .env from project root
 dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+
+// Gerar secrets aleatorios se nao configurados (com warning)
+function getJwtSecret(): string {
+  if (process.env.JWT_SECRET) {
+    return process.env.JWT_SECRET;
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    console.warn('═══════════════════════════════════════════════════════════');
+    console.warn('  AVISO: JWT_SECRET nao configurado!');
+    console.warn('  Usando secret aleatorio (tokens serao invalidados no restart)');
+    console.warn('  Configure JWT_SECRET no Easypanel para persistir sessoes.');
+    console.warn('═══════════════════════════════════════════════════════════');
+  }
+
+  return crypto.randomBytes(32).toString('hex');
+}
+
+function getJwtRefreshSecret(): string {
+  if (process.env.JWT_REFRESH_SECRET) {
+    return process.env.JWT_REFRESH_SECRET;
+  }
+
+  if (process.env.NODE_ENV === 'production') {
+    console.warn('═══════════════════════════════════════════════════════════');
+    console.warn('  AVISO: JWT_REFRESH_SECRET nao configurado!');
+    console.warn('  Configure JWT_REFRESH_SECRET no Easypanel.');
+    console.warn('═══════════════════════════════════════════════════════════');
+  }
+
+  return crypto.randomBytes(32).toString('hex');
+}
 
 export const config = {
   // App
@@ -26,8 +59,8 @@ export const config = {
 
   // JWT
   jwt: {
-    secret: process.env.JWT_SECRET || 'default-secret-change-me',
-    refreshSecret: process.env.JWT_REFRESH_SECRET || 'default-refresh-secret',
+    secret: getJwtSecret(),
+    refreshSecret: getJwtRefreshSecret(),
     accessExpiry: process.env.JWT_ACCESS_EXPIRY || '15m',
     refreshExpiry: process.env.JWT_REFRESH_EXPIRY || '7d',
   },
@@ -39,7 +72,6 @@ export const config = {
     username: process.env.QBITTORRENT_USER || 'admin',
     password: process.env.QBITTORRENT_PASS || 'adminadmin',
     get baseUrl() {
-      // Se for HTTPS na porta 443 ou HTTP na porta 80, não inclui a porta na URL
       if ((this.host.startsWith('https://') && this.port === 443) ||
           (this.host.startsWith('http://') && this.port === 80)) {
         return this.host;
@@ -84,7 +116,7 @@ export const config = {
     media: process.env.MEDIA_PATH || './media',
   },
 
-  // TMDB (The Movie Database) - for movie/series metadata
+  // TMDB
   tmdb: {
     apiKey: process.env.TMDB_API_KEY || '',
     baseUrl: 'https://api.themoviedb.org/3',
