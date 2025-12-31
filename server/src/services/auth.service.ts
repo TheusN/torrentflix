@@ -193,12 +193,17 @@ class AuthService {
     const adminExists = await User.findOne({ where: { role: 'admin' } });
     if (!adminExists) {
       await User.create({
-        email: 'admin@torrentflix.local',
-        passwordHash: 'admin123', // Will be hashed by hook
-        name: 'Administrator',
+        email: 'admin@admin.com',
+        passwordHash: '123456', // Will be hashed by hook
+        name: 'Administrador',
         role: 'admin',
       });
-      console.log('Usuario admin padrao criado: admin@torrentflix.local / admin123');
+      console.log('========================================');
+      console.log('Usuario admin padrao criado!');
+      console.log('Email: admin@admin.com');
+      console.log('Senha: 123456');
+      console.log('IMPORTANTE: Altere a senha apos o primeiro login!');
+      console.log('========================================');
     }
   }
 }

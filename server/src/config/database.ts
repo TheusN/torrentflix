@@ -48,10 +48,14 @@ export async function connectDatabase(): Promise<void> {
     await sequelize.authenticate();
     logger.info('Database connection established successfully');
 
-    // Sync models in development
-    if (!config.isProduction) {
+    // Sync models (criar tabelas se não existirem)
+    // Em produção usa sync normal, em dev usa alter
+    if (config.isProduction) {
+      await sequelize.sync();
+      logger.info('Database models synchronized (production)');
+    } else {
       await sequelize.sync({ alter: true });
-      logger.info('Database models synchronized');
+      logger.info('Database models synchronized (development)');
     }
   } catch (error) {
     logger.error('Unable to connect to the database:', error);
