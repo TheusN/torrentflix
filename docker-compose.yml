@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # ============================================
   # TorrentFlix Application
@@ -8,21 +6,17 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: torrentflix-app
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
-      # Database - conecta ao postgres interno
       - DATABASE_URL=postgres://torrentflix:torrentflix123@db:5432/torrentflix
-      # JWT - gerados automaticamente se não configurados
       - JWT_SECRET=${JWT_SECRET:-}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-}
       - JWT_ACCESS_EXPIRY=15m
       - JWT_REFRESH_EXPIRY=7d
-      # Servicos externos (configure depois via painel admin)
       - QBITTORRENT_HOST=${QBITTORRENT_HOST:-http://localhost}
       - QBITTORRENT_PORT=${QBITTORRENT_PORT:-8080}
       - QBITTORRENT_USER=${QBITTORRENT_USER:-admin}
@@ -39,8 +33,6 @@ services:
       - TMDB_API_KEY=${TMDB_API_KEY:-}
     volumes:
       - downloads:/app/downloads
-    networks:
-      - torrentflix
     depends_on:
       db:
         condition: service_healthy
@@ -56,7 +48,6 @@ services:
   # ============================================
   db:
     image: postgres:16-alpine
-    container_name: torrentflix-db
     restart: unless-stopped
     environment:
       - POSTGRES_USER=torrentflix
@@ -64,18 +55,12 @@ services:
       - POSTGRES_DB=torrentflix
     volumes:
       - postgres_data:/var/lib/postgresql/data
-    networks:
-      - torrentflix
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U torrentflix -d torrentflix"]
       interval: 5s
       timeout: 5s
       retries: 10
       start_period: 10s
-
-networks:
-  torrentflix:
-    driver: bridge
 
 volumes:
   postgres_data:
