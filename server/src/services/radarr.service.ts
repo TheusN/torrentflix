@@ -1,5 +1,6 @@
 import { config } from '../config/index.js';
 import { logger } from '../middleware/logger.middleware.js';
+import { settingsService } from './settings.service.js';
 import {
   RadarrMovie,
   RadarrLookupResult,
@@ -12,20 +13,27 @@ import {
 } from '../types/arr-api.types.js';
 
 class RadarrService {
-  private baseUrl: string;
-  private apiKey: string;
+  private cachedConfig: { url: string; apiKey: string; enabled: boolean } | null = null;
 
-  constructor() {
-    this.baseUrl = config.radarr.baseUrl;
-    this.apiKey = config.radarr.apiKey;
+  // Obter configuração atualizada do banco/env
+  private async getConfig(): Promise<{ url: string; apiKey: string; enabled: boolean }> {
+    const dbConfig = await settingsService.getRadarrConfig();
+    this.cachedConfig = dbConfig;
+    return dbConfig;
+  }
+
+  // Clear cache
+  clearCache(): void {
+    this.cachedConfig = null;
   }
 
   // Make API request
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+    const cfg = await this.getConfig();
+    const response = await fetch(`${cfg.url}${endpoint}`, {
       ...options,
       headers: {
-        'X-Api-Key': this.apiKey,
+        'X-Api-Key': cfg.apiKey,
         'Content-Type': 'application/json',
         ...options.headers,
       },
@@ -43,6 +51,7 @@ class RadarrService {
   // Check connection
   async checkConnection(): Promise<boolean> {
     try {
+      this.clearCache();
       await this.request('/api/v3/system/status');
       return true;
     } catch {

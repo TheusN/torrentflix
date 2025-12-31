@@ -1,5 +1,6 @@
 import { config } from '../config/index.js';
 import { logger } from '../middleware/logger.middleware.js';
+import { settingsService } from './settings.service.js';
 import {
   JackettSearchResponse,
   SearchResult,
@@ -9,19 +10,27 @@ import {
 } from '../types/search.types.js';
 
 class JackettService {
-  private baseUrl: string;
-  private apiKey: string;
+  private cachedConfig: { url: string; apiKey: string; enabled: boolean } | null = null;
 
-  constructor() {
-    this.baseUrl = config.jackett.baseUrl;
-    this.apiKey = config.jackett.apiKey;
+  // Obter configuração atualizada do banco/env
+  private async getConfig(): Promise<{ url: string; apiKey: string; enabled: boolean }> {
+    const dbConfig = await settingsService.getJackettConfig();
+    this.cachedConfig = dbConfig;
+    return dbConfig;
+  }
+
+  // Clear cache
+  clearCache(): void {
+    this.cachedConfig = null;
   }
 
   // Check connection to Jackett
   async checkConnection(): Promise<boolean> {
     try {
+      this.clearCache();
+      const cfg = await this.getConfig();
       const response = await fetch(
-        `${this.baseUrl}/api/v2.0/indexers/all/results?apikey=${this.apiKey}&Query=test`,
+        `${cfg.url}/api/v2.0/indexers/all/results?apikey=${cfg.apiKey}&Query=test`,
         { method: 'GET' }
       );
       return response.ok;
@@ -34,8 +43,9 @@ class JackettService {
   // Get configured indexers
   async getIndexers(): Promise<{ id: string; name: string; configured: boolean }[]> {
     try {
+      const cfg = await this.getConfig();
       const response = await fetch(
-        `${this.baseUrl}/api/v2.0/indexers?apikey=${this.apiKey}`,
+        `${cfg.url}/api/v2.0/indexers?apikey=${cfg.apiKey}`,
         { method: 'GET' }
       );
 
@@ -63,8 +73,9 @@ class JackettService {
     totalResults: number;
   }> {
     try {
+      const cfg = await this.getConfig();
       const queryParams = new URLSearchParams();
-      queryParams.append('apikey', this.apiKey);
+      queryParams.append('apikey', cfg.apiKey);
       queryParams.append('Query', params.query);
 
       // Add categories if specified
@@ -81,7 +92,7 @@ class JackettService {
       logger.info(`Jackett search: ${params.query}`);
 
       const response = await fetch(
-        `${this.baseUrl}${endpoint}?${queryParams.toString()}`,
+        `${cfg.url}${endpoint}?${queryParams.toString()}`,
         { method: 'GET' }
       );
 

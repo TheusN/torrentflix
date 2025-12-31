@@ -1,5 +1,6 @@
 import { config } from '../config/index.js';
 import { logger } from '../middleware/logger.middleware.js';
+import { settingsService } from './settings.service.js';
 import {
   QBittorrentTorrent,
   QBittorrentFile,
@@ -13,30 +14,46 @@ import {
 } from '../types/torrent.types.js';
 
 class QBittorrentService {
-  private baseUrl: string;
   private cookie: string | null = null;
   private cookieExpiry: number = 0;
+  private cachedConfig: { url: string; username: string; password: string } | null = null;
 
-  constructor() {
-    this.baseUrl = config.qbittorrent.baseUrl;
+  // Obter configuração atualizada do banco/env
+  private async getConfig(): Promise<{ url: string; username: string; password: string }> {
+    // Sempre buscar configuração atualizada do banco
+    const dbConfig = await settingsService.getQBittorrentConfig();
+
+    // Se a configuração mudou, invalidar cookie
+    if (this.cachedConfig &&
+        (this.cachedConfig.url !== dbConfig.url ||
+         this.cachedConfig.username !== dbConfig.username ||
+         this.cachedConfig.password !== dbConfig.password)) {
+      this.cookie = null;
+      this.cookieExpiry = 0;
+    }
+
+    this.cachedConfig = dbConfig;
+    return dbConfig;
   }
 
   // Authenticate with qBittorrent
-  private async authenticate(): Promise<void> {
+  private async authenticate(): Promise<string> {
+    const qbConfig = await this.getConfig();
+
     // Check if we have a valid cookie
     if (this.cookie && Date.now() < this.cookieExpiry) {
-      return;
+      return qbConfig.url;
     }
 
     try {
-      const response = await fetch(`${this.baseUrl}/api/v2/auth/login`, {
+      const response = await fetch(`${qbConfig.url}/api/v2/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
         body: new URLSearchParams({
-          username: config.qbittorrent.username,
-          password: config.qbittorrent.password,
+          username: qbConfig.username,
+          password: qbConfig.password,
         }),
       });
 
@@ -58,9 +75,10 @@ class QBittorrentService {
       }
 
       logger.info('qBittorrent authenticated successfully');
+      return qbConfig.url;
     } catch (error) {
       logger.error('qBittorrent authentication failed:', error);
-      throw new Error('Failed to authenticate with qBittorrent');
+      throw new Error('Falha ao conectar com qBittorrent. Verifique URL e credenciais.');
     }
   }
 
@@ -69,9 +87,9 @@ class QBittorrentService {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
-    await this.authenticate();
+    const baseUrl = await this.authenticate();
 
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
+    const response = await fetch(`${baseUrl}${endpoint}`, {
       ...options,
       headers: {
         ...options.headers,
@@ -98,9 +116,18 @@ class QBittorrentService {
     return response.text() as unknown as T;
   }
 
+  // Clear cached credentials to force re-authentication
+  clearCache(): void {
+    this.cookie = null;
+    this.cookieExpiry = 0;
+    this.cachedConfig = null;
+  }
+
   // Check connection to qBittorrent
   async checkConnection(): Promise<boolean> {
     try {
+      // Limpar cache para forçar nova autenticação
+      this.clearCache();
       await this.authenticate();
       return true;
     } catch {

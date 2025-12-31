@@ -4,6 +4,9 @@ import { BadRequestError, NotFoundError } from '../middleware/error.middleware.j
 import bcrypt from 'bcrypt';
 import { Op } from 'sequelize';
 import { qbittorrentService } from '../services/qbittorrent.service.js';
+import { jackettService } from '../services/jackett.service.js';
+import { sonarrService } from '../services/sonarr.service.js';
+import { radarrService } from '../services/radarr.service.js';
 
 export class AdminController {
   // ==================== DASHBOARD ====================
@@ -230,13 +233,38 @@ export class AdminController {
         order: [['category', 'ASC'], ['key', 'ASC']],
       });
 
+      // Mapear chaves para o formato esperado pelo frontend
+      const keyMapping: Record<string, string> = {
+        'qbittorrent_url': 'url',
+        'qbittorrent_username': 'username',
+        'qbittorrent_password': 'password',
+        'sonarr_enabled': 'enabled',
+        'sonarr_url': 'url',
+        'sonarr_api_key': 'api_key',
+        'radarr_enabled': 'enabled',
+        'radarr_url': 'url',
+        'radarr_api_key': 'api_key',
+        'jackett_enabled': 'enabled',
+        'jackett_url': 'url',
+        'jackett_api_key': 'api_key',
+        'tmdb_api_key': 'api_key',
+      };
+
       // Agrupar por categoria e mascarar valores secretos
-      const grouped: Record<string, Record<string, string>> = {};
+      const grouped: Record<string, Record<string, string | boolean>> = {};
       for (const setting of settings) {
         if (!grouped[setting.category]) {
           grouped[setting.category] = {};
         }
-        grouped[setting.category][setting.key] = setting.isSecret ? '••••••••' : setting.value;
+        const shortKey = keyMapping[setting.key] || setting.key;
+        let value: string | boolean = setting.isSecret ? '••••••••' : setting.value;
+
+        // Converter 'enabled' para booleano
+        if (shortKey === 'enabled') {
+          value = setting.value === 'true';
+        }
+
+        grouped[setting.category][shortKey] = value;
       }
 
       res.json({
@@ -256,20 +284,32 @@ export class AdminController {
         throw new BadRequestError('Configurações inválidas');
       }
 
+      const updatedKeys: string[] = [];
+
       for (const [key, value] of Object.entries(settings)) {
+        // Não sobrescrever senhas mascaradas
+        if (this.isSecretKey(key) && (value === '••••••••' || value === '********' || value === '')) {
+          continue;
+        }
+
         await SystemSettings.upsert({
           key,
           value: value as string,
           category: this.getCategoryFromKey(key),
           isSecret: this.isSecretKey(key),
         });
+        updatedKeys.push(key);
       }
+
+      // Limpar cache do settingsService para aplicar novas configurações
+      const { settingsService } = await import('../services/settings.service.js');
+      settingsService.clearCache();
 
       // Log da ação
       await ActivityLog.create({
         userId: req.user?.userId,
         action: 'admin.settings_update',
-        details: { keys: Object.keys(settings) },
+        details: { keys: updatedKeys },
         ipAddress: req.ip,
       });
 
@@ -286,19 +326,87 @@ export class AdminController {
     try {
       const { service } = req.params;
 
+      // Limpar cache para usar configurações mais recentes
+      const { settingsService } = await import('../services/settings.service.js');
+      settingsService.clearCache();
+
       let result: { success: boolean; message: string };
 
       switch (service) {
         case 'qbittorrent':
           try {
-            await qbittorrentService.getTransferInfo();
-            result = { success: true, message: 'Conexão com qBittorrent OK' };
-          } catch {
-            result = { success: false, message: 'Falha ao conectar com qBittorrent' };
+            // Força re-autenticação com novas configurações
+            await qbittorrentService.checkConnection();
+            const version = await qbittorrentService.getVersion();
+            result = { success: true, message: `Conexão com qBittorrent OK (v${version})` };
+          } catch (error: any) {
+            result = { success: false, message: error.message || 'Falha ao conectar com qBittorrent' };
           }
           break;
 
-        // TODO: Adicionar testes para outros serviços (Jackett, Sonarr, Radarr, TMDB)
+        case 'jackett':
+          try {
+            jackettService.clearCache();
+            const connected = await jackettService.checkConnection();
+            if (connected) {
+              const indexers = await jackettService.getIndexers();
+              const configured = indexers.filter(i => i.configured).length;
+              result = { success: true, message: `Conexão com Jackett OK (${configured} indexadores configurados)` };
+            } else {
+              result = { success: false, message: 'Falha ao conectar com Jackett' };
+            }
+          } catch (error: any) {
+            result = { success: false, message: error.message || 'Falha ao conectar com Jackett' };
+          }
+          break;
+
+        case 'sonarr':
+          try {
+            sonarrService.clearCache();
+            const connected = await sonarrService.checkConnection();
+            if (connected) {
+              const status = await sonarrService.getStatus();
+              result = { success: true, message: `Conexão com Sonarr OK (v${status.version})` };
+            } else {
+              result = { success: false, message: 'Falha ao conectar com Sonarr' };
+            }
+          } catch (error: any) {
+            result = { success: false, message: error.message || 'Falha ao conectar com Sonarr' };
+          }
+          break;
+
+        case 'radarr':
+          try {
+            radarrService.clearCache();
+            const connected = await radarrService.checkConnection();
+            if (connected) {
+              const status = await radarrService.getStatus();
+              result = { success: true, message: `Conexão com Radarr OK (v${status.version})` };
+            } else {
+              result = { success: false, message: 'Falha ao conectar com Radarr' };
+            }
+          } catch (error: any) {
+            result = { success: false, message: error.message || 'Falha ao conectar com Radarr' };
+          }
+          break;
+
+        case 'tmdb':
+          try {
+            const tmdbApiKey = await settingsService.getTmdbApiKey();
+            if (!tmdbApiKey) {
+              result = { success: false, message: 'API Key do TMDB não configurada' };
+            } else {
+              const response = await fetch(`https://api.themoviedb.org/3/configuration?api_key=${tmdbApiKey}`);
+              if (response.ok) {
+                result = { success: true, message: 'Conexão com TMDB OK' };
+              } else {
+                result = { success: false, message: 'API Key do TMDB inválida' };
+              }
+            }
+          } catch (error: any) {
+            result = { success: false, message: error.message || 'Falha ao conectar com TMDB' };
+          }
+          break;
 
         default:
           result = { success: false, message: 'Serviço desconhecido' };
