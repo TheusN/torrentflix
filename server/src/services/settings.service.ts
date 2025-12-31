@@ -11,6 +11,13 @@ export interface ServiceConfig {
   enabled: boolean;
   url: string;
   apiKey: string;
+  password?: string;
+}
+
+export interface PathMappingConfig {
+  enabled: boolean;
+  remotePath: string;  // Caminho no servidor qBittorrent (ex: /downloads)
+  localPath: string;   // Caminho local (ex: D:\Downloads ou /mnt/downloads)
 }
 
 class SettingsService {
@@ -65,6 +72,7 @@ class SettingsService {
       enabled: this.cache.get('jackett_enabled') === 'true',
       url: this.cache.get('jackett_url') || config.jackett.baseUrl,
       apiKey: this.cache.get('jackett_api_key') || config.jackett.apiKey,
+      password: this.cache.get('jackett_password') || '',
     };
   }
 
@@ -96,8 +104,44 @@ class SettingsService {
     return this.cache.get('tmdb_api_key') || config.tmdb.apiKey;
   }
 
+  // Obter configurações de mapeamento de caminhos
+  async getPathMappingConfig(): Promise<PathMappingConfig> {
+    await this.loadSettings();
+
+    return {
+      enabled: this.cache.get('path_mapping_enabled') === 'true',
+      remotePath: this.cache.get('path_mapping_remote') || '',
+      localPath: this.cache.get('path_mapping_local') || '',
+    };
+  }
+
+  // Aplicar mapeamento de caminho (remoto -> local)
+  async mapPath(remotePath: string): Promise<string> {
+    const mapping = await this.getPathMappingConfig();
+
+    if (!mapping.enabled || !mapping.remotePath || !mapping.localPath) {
+      return remotePath;
+    }
+
+    // Normalizar barras para comparação
+    const normalizedRemote = mapping.remotePath.replace(/\\/g, '/').replace(/\/+$/, '');
+    const normalizedLocal = mapping.localPath.replace(/\\/g, '/').replace(/\/+$/, '');
+    const normalizedPath = remotePath.replace(/\\/g, '/');
+
+    if (normalizedPath.startsWith(normalizedRemote)) {
+      const result = normalizedPath.replace(normalizedRemote, normalizedLocal);
+      // No Windows, converter barras de volta se necessário
+      if (process.platform === 'win32') {
+        return result.replace(/\//g, '\\');
+      }
+      return result;
+    }
+
+    return remotePath;
+  }
+
   // Salvar configuração
-  async set(key: string, value: string, category: 'qbittorrent' | 'jackett' | 'sonarr' | 'radarr' | 'tmdb' | 'general', isSecret: boolean = false): Promise<void> {
+  async set(key: string, value: string, category: 'qbittorrent' | 'jackett' | 'sonarr' | 'radarr' | 'tmdb' | 'path_mapping' | 'general', isSecret: boolean = false): Promise<void> {
     await SystemSettings.upsert({
       key,
       value,
@@ -118,12 +162,13 @@ class SettingsService {
     }
   }
 
-  private getCategoryFromKey(key: string): 'qbittorrent' | 'jackett' | 'sonarr' | 'radarr' | 'tmdb' | 'general' {
+  private getCategoryFromKey(key: string): 'qbittorrent' | 'jackett' | 'sonarr' | 'radarr' | 'tmdb' | 'path_mapping' | 'general' {
     if (key.startsWith('qbittorrent_')) return 'qbittorrent';
     if (key.startsWith('jackett_')) return 'jackett';
     if (key.startsWith('sonarr_')) return 'sonarr';
     if (key.startsWith('radarr_')) return 'radarr';
     if (key.startsWith('tmdb_')) return 'tmdb';
+    if (key.startsWith('path_mapping_')) return 'path_mapping';
     return 'general';
   }
 

@@ -1,19 +1,61 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Play, Search, Grid, List, Star, Tv, RefreshCw, ChevronRight } from 'lucide-react';
+import { Play, Search, Grid, List, Star, Tv, RefreshCw, ChevronRight, Plus, Info } from 'lucide-react';
 import { seriesApi } from '../../api/media.api';
 import type { SonarrSeries } from '../../api/media.api';
+import ModalMidia from '../../components/ModalMidia';
 
-function CardSerie({ serie }: { serie: SonarrSeries }) {
+interface MediaItem {
+  id: number;
+  title: string;
+  overview: string;
+  poster: string | null;
+  backdrop: string | null;
+  year: number;
+  rating?: number;
+  runtime?: number;
+  genres?: string[];
+  type: 'movie' | 'series';
+  hasFile?: boolean;
+  sizeOnDisk?: number;
+  tmdbId?: number;
+  statistics?: {
+    episodeFileCount?: number;
+    episodeCount?: number;
+    percentOfEpisodes?: number;
+    seasonCount?: number;
+  };
+}
+
+function converterParaMediaItem(serie: SonarrSeries): MediaItem {
+  return {
+    id: serie.id,
+    title: serie.title,
+    overview: serie.overview || '',
+    poster: serie.poster,
+    backdrop: serie.fanart,
+    year: serie.year,
+    rating: serie.ratings?.value,
+    genres: serie.genres,
+    type: 'series',
+    hasFile: (serie.statistics?.episodeFileCount || 0) > 0,
+    tmdbId: serie.tvdbId,
+    statistics: serie.statistics,
+  };
+}
+
+function CardSerie({ serie, onSelect }: { serie: SonarrSeries; onSelect: () => void }) {
   const [mostrarOverlay, setMostrarOverlay] = useState(false);
   const percentComplete = serie.statistics?.percentOfEpisodes || 0;
+  const temEpisodios = (serie.statistics?.episodeFileCount || 0) > 0;
 
   return (
     <div
-      className="group relative rounded-xl overflow-hidden bg-zinc-900 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-red-600/20"
+      className="group relative rounded-xl overflow-hidden bg-zinc-900 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-red-600/20 cursor-pointer"
       onMouseEnter={() => setMostrarOverlay(true)}
       onMouseLeave={() => setMostrarOverlay(false)}
+      onClick={onSelect}
     >
       {/* Poster */}
       <div className="relative aspect-[2/3]">
@@ -59,14 +101,29 @@ function CardSerie({ serie }: { serie: SonarrSeries }) {
 
         {/* Overlay */}
         <div className={`absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent transition-opacity duration-300 ${mostrarOverlay ? 'opacity-100' : 'opacity-0'}`}>
-          {/* Botao de play */}
-          {percentComplete > 0 && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <button className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center shadow-2xl hover:bg-red-500 hover:scale-110 transition-all duration-300">
-                <Play className="w-8 h-8 text-white fill-white ml-1" />
+          {/* Botoes de acao */}
+          <div className="absolute inset-0 flex items-center justify-center gap-3">
+            {temEpisodios && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onSelect(); }}
+                className="w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-2xl hover:scale-110 transition-all duration-300"
+              >
+                <Play className="w-7 h-7 text-black fill-black ml-1" />
               </button>
-            </div>
-          )}
+            )}
+            <button
+              onClick={(e) => e.stopPropagation()}
+              className="w-10 h-10 rounded-full bg-zinc-800/80 border border-zinc-600 flex items-center justify-center hover:border-white hover:bg-zinc-700 transition-all"
+            >
+              <Plus className="w-5 h-5 text-white" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onSelect(); }}
+              className="w-10 h-10 rounded-full bg-zinc-800/80 border border-zinc-600 flex items-center justify-center hover:border-white hover:bg-zinc-700 transition-all"
+            >
+              <Info className="w-5 h-5 text-white" />
+            </button>
+          </div>
 
           {/* Info no overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-4">
@@ -108,6 +165,7 @@ export default function Series() {
   const [busca, setBusca] = useState('');
   const [filtro, setFiltro] = useState<'all' | 'complete' | 'progress' | 'monitored'>('all');
   const [visualizacao, setVisualizacao] = useState<'grid' | 'list'>('grid');
+  const [serieSelecionada, setSerieSelecionada] = useState<MediaItem | null>(null);
 
   // Buscar series
   const { data: series, isLoading } = useQuery({
@@ -115,6 +173,10 @@ export default function Series() {
     queryFn: () => seriesApi.list(),
     retry: false,
   });
+
+  const handleSelecionarSerie = (serie: SonarrSeries) => {
+    setSerieSelecionada(converterParaMediaItem(serie));
+  };
 
   // Filtrar series
   const seriesFiltradas = series?.filter(serie => {
@@ -219,13 +281,14 @@ export default function Series() {
           }>
             {visualizacao === 'grid' ? (
               seriesFiltradas.map((serie) => (
-                <CardSerie key={serie.id} serie={serie} />
+                <CardSerie key={serie.id} serie={serie} onSelect={() => handleSelecionarSerie(serie)} />
               ))
             ) : (
               seriesFiltradas.map((serie) => (
                 <div
                   key={serie.id}
-                  className="flex items-center gap-4 p-4 rounded-xl bg-zinc-800/30 border border-zinc-800/50 hover:border-zinc-700/50 transition-all group"
+                  onClick={() => handleSelecionarSerie(serie)}
+                  className="flex items-center gap-4 p-4 rounded-xl bg-zinc-800/30 border border-zinc-800/50 hover:border-zinc-700/50 transition-all group cursor-pointer"
                 >
                   <div className="flex-shrink-0 w-16 aspect-[2/3] rounded-lg overflow-hidden bg-zinc-800">
                     {serie.poster ? (
@@ -284,6 +347,12 @@ export default function Series() {
           </div>
         )}
       </div>
+
+      {/* Modal de detalhes */}
+      <ModalMidia
+        media={serieSelecionada}
+        onClose={() => setSerieSelecionada(null)}
+      />
     </div>
   );
 }

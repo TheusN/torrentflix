@@ -116,11 +116,6 @@ export function LoginForm({ onSuccess, onRegisterClick }: LoginFormProps) {
           </div>
         )}
 
-        <div className="mt-8 pt-6 border-t border-zinc-800/50">
-          <p className="text-zinc-600 text-xs text-center">
-            Admin padrao: admin@torrentflix.local / admin123
-          </p>
-        </div>
       </div>
     </div>
   );

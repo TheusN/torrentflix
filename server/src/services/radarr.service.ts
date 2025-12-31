@@ -30,7 +30,12 @@ class RadarrService {
   // Make API request
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const cfg = await this.getConfig();
-    const response = await fetch(`${cfg.url}${endpoint}`, {
+
+    // Remover barra final da URL base e garantir barra inicial no endpoint
+    const baseUrl = cfg.url.replace(/\/+$/, '');
+    const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+
+    const response = await fetch(`${baseUrl}${path}`, {
       ...options,
       headers: {
         'X-Api-Key': cfg.apiKey,
@@ -42,7 +47,15 @@ class RadarrService {
     if (!response.ok) {
       const error = await response.text();
       logger.error(`Radarr API error: ${response.status} - ${error}`);
-      throw new Error(`Radarr API error: ${response.status}`);
+
+      if (response.status === 401) {
+        throw new Error('API Key do Radarr invalida ou nao configurada');
+      }
+      if (response.status === 404) {
+        throw new Error('Endpoint nao encontrado. Verifique a URL do Radarr');
+      }
+
+      throw new Error(`Erro Radarr: ${response.status} - ${error.substring(0, 100)}`);
     }
 
     return response.json() as Promise<T>;
@@ -52,10 +65,20 @@ class RadarrService {
   async checkConnection(): Promise<boolean> {
     try {
       this.clearCache();
+      const cfg = await this.getConfig();
+
+      if (!cfg.url) {
+        throw new Error('URL do Radarr nao configurada');
+      }
+      if (!cfg.apiKey) {
+        throw new Error('API Key do Radarr nao configurada');
+      }
+
       await this.request('/api/v3/system/status');
       return true;
-    } catch {
-      return false;
+    } catch (error: any) {
+      logger.error(`Radarr connection check failed: ${error?.message}`);
+      throw error;
     }
   }
 

@@ -30,7 +30,12 @@ class SonarrService {
   // Make API request
   private async request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const cfg = await this.getConfig();
-    const response = await fetch(`${cfg.url}${endpoint}`, {
+
+    // Remover barra final da URL base e garantir barra inicial no endpoint
+    const baseUrl = cfg.url.replace(/\/+$/, '');
+    const path = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
+
+    const response = await fetch(`${baseUrl}${path}`, {
       ...options,
       headers: {
         'X-Api-Key': cfg.apiKey,
@@ -42,7 +47,15 @@ class SonarrService {
     if (!response.ok) {
       const error = await response.text();
       logger.error(`Sonarr API error: ${response.status} - ${error}`);
-      throw new Error(`Sonarr API error: ${response.status}`);
+
+      if (response.status === 401) {
+        throw new Error('API Key do Sonarr invalida ou nao configurada');
+      }
+      if (response.status === 404) {
+        throw new Error('Endpoint nao encontrado. Verifique a URL do Sonarr');
+      }
+
+      throw new Error(`Erro Sonarr: ${response.status} - ${error.substring(0, 100)}`);
     }
 
     return response.json() as Promise<T>;
@@ -52,10 +65,20 @@ class SonarrService {
   async checkConnection(): Promise<boolean> {
     try {
       this.clearCache();
+      const cfg = await this.getConfig();
+
+      if (!cfg.url) {
+        throw new Error('URL do Sonarr nao configurada');
+      }
+      if (!cfg.apiKey) {
+        throw new Error('API Key do Sonarr nao configurada');
+      }
+
       await this.request('/api/v3/system/status');
       return true;
-    } catch {
-      return false;
+    } catch (error: any) {
+      logger.error(`Sonarr connection check failed: ${error?.message}`);
+      throw error;
     }
   }
 

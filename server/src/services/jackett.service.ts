@@ -10,10 +10,10 @@ import {
 } from '../types/search.types.js';
 
 class JackettService {
-  private cachedConfig: { url: string; apiKey: string; enabled: boolean } | null = null;
+  private cachedConfig: { url: string; apiKey: string; enabled: boolean; password?: string } | null = null;
 
   // Obter configuração atualizada do banco/env
-  private async getConfig(): Promise<{ url: string; apiKey: string; enabled: boolean }> {
+  private async getConfig(): Promise<{ url: string; apiKey: string; enabled: boolean; password?: string }> {
     const dbConfig = await settingsService.getJackettConfig();
     this.cachedConfig = dbConfig;
     return dbConfig;
@@ -24,19 +24,102 @@ class JackettService {
     this.cachedConfig = null;
   }
 
+  private sessionCookie: string | null = null;
+
+  // Autenticar com senha de UI do Jackett
+  private async authenticate(baseUrl: string, password: string): Promise<string | null> {
+    try {
+      const response = await fetch(`${baseUrl}/UI/Dashboard`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `password=${encodeURIComponent(password)}`,
+        redirect: 'manual',
+      });
+
+      const setCookie = response.headers.get('set-cookie');
+      if (setCookie) {
+        return setCookie.split(';')[0];
+      }
+      return null;
+    } catch (error) {
+      logger.error('Jackett authentication failed:', error);
+      return null;
+    }
+  }
+
   // Check connection to Jackett
   async checkConnection(): Promise<boolean> {
     try {
       this.clearCache();
       const cfg = await this.getConfig();
-      const response = await fetch(
-        `${cfg.url}/api/v2.0/indexers/all/results?apikey=${cfg.apiKey}&Query=test`,
-        { method: 'GET' }
-      );
-      return response.ok;
-    } catch (error) {
-      logger.error('Jackett connection check failed:', error);
-      return false;
+
+      if (!cfg.url) {
+        throw new Error('URL do Jackett nao configurada');
+      }
+      if (!cfg.apiKey) {
+        throw new Error('API Key do Jackett nao configurada');
+      }
+
+      // Remover barra final da URL e /UI/Dashboard se presente
+      let baseUrl = cfg.url.replace(/\/+$/, '');
+      baseUrl = baseUrl.replace(/\/UI\/Dashboard$/i, '');
+
+      // Adicionar timeout de 10 segundos
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+
+      try {
+        // Preparar headers
+        const headers: Record<string, string> = {};
+
+        // Se tiver senha de UI, autenticar primeiro
+        if (cfg.password) {
+          const cookie = await this.authenticate(baseUrl, cfg.password);
+          if (cookie) {
+            this.sessionCookie = cookie;
+            headers['Cookie'] = cookie;
+          }
+        } else if (this.sessionCookie) {
+          headers['Cookie'] = this.sessionCookie;
+        }
+
+        const response = await fetch(
+          `${baseUrl}/api/v2.0/indexers?apikey=${cfg.apiKey}`,
+          {
+            method: 'GET',
+            headers,
+            signal: controller.signal
+          }
+        );
+
+        clearTimeout(timeout);
+
+        // Verificar se retornou "Cookies required" (senha de UI ativada)
+        const text = await response.text();
+        if (text.includes('Cookies required')) {
+          throw new Error('Jackett exige senha de UI. Preencha o campo "Senha UI" nas configuracoes');
+        }
+
+        if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error('API Key do Jackett invalida');
+          }
+          throw new Error(`Erro Jackett: ${response.status}`);
+        }
+
+        return true;
+      } catch (error: any) {
+        clearTimeout(timeout);
+        if (error.name === 'AbortError') {
+          throw new Error('Timeout: Jackett demorou muito para responder');
+        }
+        throw error;
+      }
+    } catch (error: any) {
+      logger.error('Jackett connection check failed:', error?.message);
+      throw error;
     }
   }
 
@@ -44,24 +127,44 @@ class JackettService {
   async getIndexers(): Promise<{ id: string; name: string; configured: boolean }[]> {
     try {
       const cfg = await this.getConfig();
+      let baseUrl = cfg.url.replace(/\/+$/, '');
+      baseUrl = baseUrl.replace(/\/UI\/Dashboard$/i, '');
+
+      // Preparar headers com cookie de autenticação
+      const headers: Record<string, string> = {};
+      if (cfg.password && !this.sessionCookie) {
+        const cookie = await this.authenticate(baseUrl, cfg.password);
+        if (cookie) {
+          this.sessionCookie = cookie;
+        }
+      }
+      if (this.sessionCookie) {
+        headers['Cookie'] = this.sessionCookie;
+      }
+
       const response = await fetch(
-        `${cfg.url}/api/v2.0/indexers?apikey=${cfg.apiKey}`,
-        { method: 'GET' }
+        `${baseUrl}/api/v2.0/indexers?apikey=${cfg.apiKey}`,
+        { method: 'GET', headers }
       );
 
       if (!response.ok) {
         throw new Error(`Jackett API error: ${response.status}`);
       }
 
-      const indexers = await response.json() as any[];
+      const text = await response.text();
+      if (text.includes('Cookies required')) {
+        throw new Error('Jackett exige senha de UI');
+      }
+
+      const indexers = JSON.parse(text) as any[];
 
       return indexers.map((indexer: any) => ({
         id: indexer.id,
         name: indexer.name,
         configured: indexer.configured,
       }));
-    } catch (error) {
-      logger.error('Failed to get Jackett indexers:', error);
+    } catch (error: any) {
+      logger.error('Failed to get Jackett indexers:', error?.message);
       throw new Error('Failed to get indexers from Jackett');
     }
   }

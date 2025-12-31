@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import { Link, useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -12,17 +12,26 @@ import {
   Minimize,
   SkipBack,
   SkipForward,
-  RefreshCw,
-  Settings,
-  ChevronRight,
   RotateCcw,
   RotateCw,
-  Loader2
+  Loader2,
+  Settings,
 } from 'lucide-react';
-import { downloadsApi, formatBytes } from '../../api/downloads.api';
+import { apiClient } from '../../api/client';
+import { formatBytes } from '../../api/downloads.api';
 
-export default function Player() {
-  const { hash, fileIndex } = useParams<{ hash: string; fileIndex: string }>();
+interface MovieInfo {
+  id: number;
+  title: string;
+  filePath: string | null;
+  hasFile: boolean;
+  sizeOnDisk: number;
+  runtime: number;
+  mimeType: string | null;
+}
+
+export default function PlayerFilme() {
+  const { movieId } = useParams<{ movieId: string }>();
   const navigate = useNavigate();
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -37,32 +46,23 @@ export default function Player() {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [velocidade, setVelocidade] = useState(1);
-  const [mostrarConfiguracao, setMostrarConfiguracao] = useState(false);
   const [buffered, setBuffered] = useState(0);
-  const [doubleClickTimer, setDoubleClickTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [showSkipIndicator, setShowSkipIndicator] = useState<'left' | 'right' | null>(null);
 
   const controlesTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const velocidades = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
-  // Buscar informacoes do arquivo
-  const { data: filesData } = useQuery({
-    queryKey: ['torrentFiles', hash],
-    queryFn: () => hash ? downloadsApi.getFiles(hash) : null,
-    enabled: !!hash,
+  // Buscar informacoes do filme
+  const { data: movieInfo, isLoading: loadingInfo } = useQuery({
+    queryKey: ['movieInfo', movieId],
+    queryFn: async () => {
+      const response = await apiClient.get<{ success: boolean; data: MovieInfo }>(`/stream/movie/${movieId}/info`);
+      return response.data.data;
+    },
+    enabled: !!movieId,
   });
 
-  const arquivosPlayable = filesData?.files.filter(f => f.isPlayable) || [];
-  const currentFileIdx = Number(fileIndex);
-  const arquivoAtual = filesData?.files.find(f => f.index === currentFileIdx);
-  const currentPlayableIndex = arquivosPlayable.findIndex(f => f.index === currentFileIdx);
-  const proximoArquivo = currentPlayableIndex >= 0 && currentPlayableIndex < arquivosPlayable.length - 1
-    ? arquivosPlayable[currentPlayableIndex + 1]
-    : null;
-  const arquivoAnterior = currentPlayableIndex > 0
-    ? arquivosPlayable[currentPlayableIndex - 1]
-    : null;
-  const streamUrl = hash && fileIndex ? `/api/stream/${hash}/${fileIndex}` : '';
+  const streamUrl = movieId ? `/api/stream/movie/${movieId}` : '';
 
   // Formatar tempo
   const formatarTempo = (segundos: number) => {
@@ -154,39 +154,6 @@ export default function Player() {
     }
   }, []);
 
-  // Navegar para proximo/anterior arquivo
-  const irParaArquivo = useCallback((arquivo: typeof proximoArquivo) => {
-    if (arquivo && hash) {
-      navigate(`/app/assistir/${hash}/${arquivo.index}`);
-    }
-  }, [hash, navigate]);
-
-  // Clique duplo para pular
-  const handleVideoClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    const rect = (e.target as HTMLElement).getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const width = rect.width;
-
-    if (doubleClickTimer) {
-      // Double click detected
-      clearTimeout(doubleClickTimer);
-      setDoubleClickTimer(null);
-      if (x < width / 3) {
-        pular(-10);
-      } else if (x > (width * 2) / 3) {
-        pular(10);
-      }
-    } else {
-      // Start timer for single click
-      const timer = setTimeout(() => {
-        alternarReproducao();
-        setDoubleClickTimer(null);
-      }, 250);
-      setDoubleClickTimer(timer);
-    }
-  }, [doubleClickTimer, pular, alternarReproducao]);
-
   // Atalhos de teclado
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -256,7 +223,6 @@ export default function Player() {
   const handleTimeUpdate = () => {
     if (videoRef.current) {
       setTempoAtual(videoRef.current.currentTime);
-      // Update buffered progress
       if (videoRef.current.buffered.length > 0) {
         const bufferedEnd = videoRef.current.buffered.end(videoRef.current.buffered.length - 1);
         setBuffered(bufferedEnd);
@@ -272,12 +238,32 @@ export default function Player() {
   };
   const handleWaiting = () => setCarregando(true);
   const handleCanPlay = () => setCarregando(false);
-  const handleError = () => setErro('Erro ao carregar o video. O arquivo pode estar incompleto.');
-  const handleEnded = () => {
-    if (proximoArquivo) {
-      irParaArquivo(proximoArquivo);
-    }
-  };
+  const handleError = () => setErro('Erro ao carregar o video. O arquivo pode nao estar acessivel.');
+
+  if (loadingInfo) {
+    return (
+      <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="w-16 h-16 text-red-600 animate-spin" />
+          <span className="text-white/80">Carregando filme...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!movieInfo?.hasFile) {
+    return (
+      <div className="fixed inset-0 bg-black flex flex-col items-center justify-center z-50">
+        <p className="text-red-500 text-xl mb-6">Filme nao disponivel para streaming</p>
+        <button
+          onClick={() => navigate(-1)}
+          className="px-6 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-medium transition-colors"
+        >
+          Voltar
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -297,8 +283,7 @@ export default function Player() {
         onWaiting={handleWaiting}
         onCanPlay={handleCanPlay}
         onError={handleError}
-        onEnded={handleEnded}
-        onClick={handleVideoClick}
+        onClick={alternarReproducao}
       />
 
       {/* Skip Indicators */}
@@ -329,12 +314,12 @@ export default function Player() {
       {erro && (
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/90">
           <p className="text-red-500 text-xl mb-6">{erro}</p>
-          <Link
-            to="/admin/downloads"
+          <button
+            onClick={() => navigate(-1)}
             className="px-6 py-3 rounded-xl bg-red-600 hover:bg-red-500 text-white font-medium transition-colors"
           >
-            Voltar aos Downloads
-          </Link>
+            Voltar
+          </button>
         </div>
       )}
 
@@ -355,10 +340,13 @@ export default function Player() {
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="text-xl font-semibold text-white truncate">
-              {arquivoAtual?.name || filesData?.torrent?.name || 'Carregando...'}
+              {movieInfo?.title || 'Carregando...'}
             </h1>
-            {arquivoAtual && (
-              <p className="text-sm text-zinc-400">{formatBytes(arquivoAtual.size)}</p>
+            {movieInfo && (
+              <p className="text-sm text-zinc-400">
+                {formatBytes(movieInfo.sizeOnDisk)}
+                {movieInfo.runtime > 0 && ` • ${Math.floor(movieInfo.runtime / 60)}h ${movieInfo.runtime % 60}m`}
+              </p>
             )}
           </div>
         </div>
@@ -381,19 +369,15 @@ export default function Player() {
           <div className="flex items-center gap-4">
             <span className="text-sm text-white font-mono w-20">{formatarTempo(tempoAtual)}</span>
             <div className="flex-1 relative group h-1.5">
-              {/* Background */}
               <div className="absolute inset-0 rounded-full bg-white/20" />
-              {/* Buffered */}
               <div
                 className="absolute inset-y-0 left-0 rounded-full bg-white/40"
                 style={{ width: `${duracao > 0 ? (buffered / duracao) * 100 : 0}%` }}
               />
-              {/* Progress */}
               <div
                 className="absolute inset-y-0 left-0 rounded-full bg-red-600"
                 style={{ width: `${duracao > 0 ? (tempoAtual / duracao) * 100 : 0}%` }}
               />
-              {/* Input */}
               <input
                 type="range"
                 min={0}
@@ -413,19 +397,13 @@ export default function Player() {
           {/* Botoes de Controle */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              {/* Play/Pause */}
               <button
                 onClick={alternarReproducao}
                 className="p-3 rounded-lg hover:bg-white/10 text-white transition-colors"
               >
-                {reproduzindo ? (
-                  <Pause className="w-7 h-7" />
-                ) : (
-                  <Play className="w-7 h-7 fill-white" />
-                )}
+                {reproduzindo ? <Pause className="w-7 h-7" /> : <Play className="w-7 h-7 fill-white" />}
               </button>
 
-              {/* Pular para tras */}
               <button
                 onClick={() => pular(-10)}
                 className="p-2 rounded-lg hover:bg-white/10 text-white transition-colors"
@@ -433,7 +411,6 @@ export default function Player() {
                 <SkipBack className="w-6 h-6" />
               </button>
 
-              {/* Pular para frente */}
               <button
                 onClick={() => pular(10)}
                 className="p-2 rounded-lg hover:bg-white/10 text-white transition-colors"
@@ -441,17 +418,12 @@ export default function Player() {
                 <SkipForward className="w-6 h-6" />
               </button>
 
-              {/* Volume */}
               <div className="flex items-center gap-2 group/vol">
                 <button
                   onClick={alternarMudo}
                   className="p-2 rounded-lg hover:bg-white/10 text-white transition-colors"
                 >
-                  {mudo || volume === 0 ? (
-                    <VolumeX className="w-6 h-6" />
-                  ) : (
-                    <Volume2 className="w-6 h-6" />
-                  )}
+                  {mudo || volume === 0 ? <VolumeX className="w-6 h-6" /> : volume < 0.5 ? <Volume1 className="w-6 h-6" /> : <Volume2 className="w-6 h-6" />}
                 </button>
                 <input
                   type="range"
@@ -468,16 +440,33 @@ export default function Player() {
             </div>
 
             <div className="flex items-center gap-4">
-              {/* Tela Cheia */}
+              {/* Velocidade */}
+              <div className="relative group">
+                <button className="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-sm font-medium transition-colors">
+                  {velocidade}x
+                </button>
+                <div className="absolute bottom-full right-0 mb-2 hidden group-hover:block">
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-lg p-2 space-y-1">
+                    {velocidades.map((v) => (
+                      <button
+                        key={v}
+                        onClick={() => alterarVelocidade(v)}
+                        className={`block w-full px-4 py-1.5 rounded text-sm text-left transition-colors ${
+                          velocidade === v ? 'bg-red-600 text-white' : 'text-white hover:bg-white/10'
+                        }`}
+                      >
+                        {v}x
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
               <button
                 onClick={alternarTelaCheia}
                 className="p-2 rounded-lg hover:bg-white/10 text-white transition-colors"
               >
-                {telaCheia ? (
-                  <Minimize className="w-6 h-6" />
-                ) : (
-                  <Maximize className="w-6 h-6" />
-                )}
+                {telaCheia ? <Minimize className="w-6 h-6" /> : <Maximize className="w-6 h-6" />}
               </button>
             </div>
           </div>

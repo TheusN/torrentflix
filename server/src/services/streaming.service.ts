@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { Request, Response } from 'express';
 import { qbittorrentService } from './qbittorrent.service.js';
+import { settingsService } from './settings.service.js';
 import { logger } from '../middleware/logger.middleware.js';
 import { NotFoundError, BadRequestError } from '../middleware/error.middleware.js';
 import { isPlayableFile } from '../types/torrent.types.js';
@@ -9,10 +10,56 @@ import { isPlayableFile } from '../types/torrent.types.js';
 class StreamingService {
   // Get content path from qBittorrent
   async getFilePath(hash: string, fileIndex: number): Promise<string> {
-    const filePath = await qbittorrentService.getContentPath(hash, fileIndex);
+    const remotePath = await qbittorrentService.getContentPath(hash, fileIndex);
 
-    if (!filePath) {
+    if (!remotePath) {
       throw new NotFoundError('File not found');
+    }
+
+    if (!isPlayableFile(remotePath)) {
+      throw new BadRequestError('File is not a playable video');
+    }
+
+    // Aplicar mapeamento de caminho (remoto -> local)
+    const filePath = await settingsService.mapPath(remotePath);
+    logger.debug(`Path mapping: ${remotePath} -> ${filePath}`);
+
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      logger.error(`File not found on disk: ${filePath} (original: ${remotePath})`);
+      throw new NotFoundError(`Arquivo não encontrado. Verifique o mapeamento de caminhos. Caminho: ${filePath}`);
+    }
+
+    return filePath;
+  }
+
+  // Validate and get file path from direct path (with async mapping)
+  async validateAndMapPath(remotePath: string): Promise<string> {
+    if (!remotePath) {
+      throw new NotFoundError('File path not provided');
+    }
+
+    if (!isPlayableFile(remotePath)) {
+      throw new BadRequestError('File is not a playable video');
+    }
+
+    // Aplicar mapeamento de caminho (remoto -> local)
+    const filePath = await settingsService.mapPath(remotePath);
+    logger.debug(`Path mapping (direct): ${remotePath} -> ${filePath}`);
+
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      logger.error(`File not found on disk: ${filePath} (original: ${remotePath})`);
+      throw new NotFoundError(`Arquivo não encontrado. Verifique o mapeamento de caminhos. Caminho: ${filePath}`);
+    }
+
+    return filePath;
+  }
+
+  // Validate path synchronously (legacy, without mapping)
+  validateDirectPath(filePath: string): string {
+    if (!filePath) {
+      throw new NotFoundError('File path not provided');
     }
 
     if (!isPlayableFile(filePath)) {

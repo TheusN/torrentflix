@@ -247,7 +247,11 @@ export class AdminController {
         'jackett_enabled': 'enabled',
         'jackett_url': 'url',
         'jackett_api_key': 'api_key',
+        'jackett_password': 'password',
         'tmdb_api_key': 'api_key',
+        'path_mapping_enabled': 'enabled',
+        'path_mapping_remote': 'remote',
+        'path_mapping_local': 'local',
       };
 
       // Agrupar por categoria e mascarar valores secretos
@@ -276,7 +280,7 @@ export class AdminController {
     }
   }
 
-  async updateSettings(req: Request, res: Response, next: NextFunction) {
+  updateSettings = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { settings } = req.body;
 
@@ -320,7 +324,7 @@ export class AdminController {
     } catch (error) {
       next(error);
     }
-  }
+  };
 
   async testConnection(req: Request, res: Response, next: NextFunction) {
     try {
@@ -501,18 +505,19 @@ export class AdminController {
 
   // ==================== HELPERS ====================
 
-  private getCategoryFromKey(key: string): 'qbittorrent' | 'jackett' | 'sonarr' | 'radarr' | 'tmdb' | 'general' {
+  private getCategoryFromKey = (key: string): 'qbittorrent' | 'jackett' | 'sonarr' | 'radarr' | 'tmdb' | 'path_mapping' | 'general' => {
     if (key.startsWith('qbittorrent_')) return 'qbittorrent';
     if (key.startsWith('jackett_')) return 'jackett';
     if (key.startsWith('sonarr_')) return 'sonarr';
     if (key.startsWith('radarr_')) return 'radarr';
     if (key.startsWith('tmdb_')) return 'tmdb';
+    if (key.startsWith('path_mapping_')) return 'path_mapping';
     return 'general';
-  }
+  };
 
-  private isSecretKey(key: string): boolean {
+  private isSecretKey = (key: string): boolean => {
     return key.includes('password') || key.includes('api_key') || key.includes('secret');
-  }
+  };
 }
 
 export default AdminController;

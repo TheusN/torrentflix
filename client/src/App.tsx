@@ -13,6 +13,7 @@ import PaginaLogin from './pages/Login';
 
 // Páginas - Principal (App)
 import { Inicio, Filmes, Series, Player } from './pages/principal';
+import PlayerFilme from './pages/principal/PlayerFilme';
 
 // Páginas - Admin
 import {
@@ -65,6 +66,7 @@ function AppRoutes() {
         <Route path="filmes" element={<Filmes />} />
         <Route path="series" element={<Series />} />
         <Route path="assistir/:hash/:fileIndex" element={<Player />} />
+        <Route path="assistir-filme/:movieId" element={<PlayerFilme />} />
       </Route>
 
       {/* Ambiente Admin - Administração */}

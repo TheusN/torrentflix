@@ -135,8 +135,8 @@ TMDB_API_KEY=sua-tmdb-api-key
 
 1. Acesse `https://seu-dominio.com/entrar`
 2. Use as credenciais padrao:
-   - **Email:** `admin@torrentflix.local`
-   - **Senha:** `admin123`
+   - **Email:** `admin@admin.com`
+   - **Senha:** `123456`
 3. **IMPORTANTE:** Altere a senha imediatamente em `/usuario/perfil`
 4. Configure os servicos em `/admin/configuracoes`
 
@@ -195,6 +195,23 @@ start.bat
 
 # Parar tudo
 stop.bat
+
+# Deploy para Easypanel (push + deploy automatico)
+deploy.bat
+```
+
+### Deploy Automatico
+
+O script `deploy.bat` faz push para o repositorio e dispara automaticamente o deploy no Easypanel:
+
+```bash
+# Faz commit, push e deploy em um comando
+deploy.bat
+```
+
+A URL de deploy esta configurada em `.env`:
+```
+EASYPANEL_DEPLOY_URL=http://177.190.147.114:3000/api/compose/deploy/...
 ```
 
 ---
@@ -362,7 +379,7 @@ No painel de configuracoes, use o botao **"Testar Conexao"** para validar:
 ### Primeiro login nao funciona
 - Verifique os logs do servidor para erros de banco
 - O usuario admin e criado na primeira conexao com o banco
-- Credenciais: `admin@torrentflix.local` / `admin123`
+- Credenciais: `admin@admin.com` / `123456`
 
 ---
 

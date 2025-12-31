@@ -1,19 +1,55 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Play, Search, Grid, List, Star, Clock, Film, RefreshCw } from 'lucide-react';
+import { Play, Search, Grid, List, Star, Clock, Film, RefreshCw, Info, Plus } from 'lucide-react';
 import { moviesApi } from '../../api/media.api';
 import { formatBytes } from '../../api/downloads.api';
 import type { RadarrMovie } from '../../api/media.api';
+import ModalMidia from '../../components/ModalMidia';
 
-function CardFilme({ filme }: { filme: RadarrMovie }) {
+interface MediaItem {
+  id: number;
+  title: string;
+  overview: string;
+  poster: string | null;
+  backdrop: string | null;
+  year: number;
+  rating?: number;
+  runtime?: number;
+  genres?: string[];
+  type: 'movie' | 'series';
+  hasFile?: boolean;
+  sizeOnDisk?: number;
+  tmdbId?: number;
+}
+
+function converterParaMediaItem(filme: RadarrMovie): MediaItem {
+  return {
+    id: filme.id,
+    title: filme.title,
+    overview: filme.overview || '',
+    poster: filme.poster,
+    backdrop: filme.fanart,
+    year: filme.year,
+    rating: filme.ratings?.imdb?.value || filme.ratings?.tmdb?.value,
+    runtime: filme.runtime,
+    genres: filme.genres,
+    type: 'movie',
+    hasFile: filme.hasFile,
+    sizeOnDisk: filme.sizeOnDisk,
+    tmdbId: filme.tmdbId,
+  };
+}
+
+function CardFilme({ filme, onSelect }: { filme: RadarrMovie; onSelect: () => void }) {
   const [mostrarOverlay, setMostrarOverlay] = useState(false);
 
   return (
     <div
-      className="group relative rounded-xl overflow-hidden bg-zinc-900 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-red-600/20"
+      className="group relative rounded-xl overflow-hidden bg-zinc-900 transition-all duration-300 hover:scale-105 hover:shadow-2xl hover:shadow-red-600/20 cursor-pointer"
       onMouseEnter={() => setMostrarOverlay(true)}
       onMouseLeave={() => setMostrarOverlay(false)}
+      onClick={onSelect}
     >
       {/* Poster */}
       <div className="relative aspect-[2/3]">
@@ -45,14 +81,29 @@ function CardFilme({ filme }: { filme: RadarrMovie }) {
 
         {/* Overlay */}
         <div className={`absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent transition-opacity duration-300 ${mostrarOverlay ? 'opacity-100' : 'opacity-0'}`}>
-          {/* Botao de play */}
-          {filme.hasFile && (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <button className="w-16 h-16 rounded-full bg-red-600 flex items-center justify-center shadow-2xl hover:bg-red-500 hover:scale-110 transition-all duration-300">
-                <Play className="w-8 h-8 text-white fill-white ml-1" />
+          {/* Botoes de acao */}
+          <div className="absolute inset-0 flex items-center justify-center gap-3">
+            {filme.hasFile && (
+              <button
+                onClick={(e) => { e.stopPropagation(); onSelect(); }}
+                className="w-14 h-14 rounded-full bg-white flex items-center justify-center shadow-2xl hover:scale-110 transition-all duration-300"
+              >
+                <Play className="w-7 h-7 text-black fill-black ml-1" />
               </button>
-            </div>
-          )}
+            )}
+            <button
+              onClick={(e) => e.stopPropagation()}
+              className="w-10 h-10 rounded-full bg-zinc-800/80 border border-zinc-600 flex items-center justify-center hover:border-white hover:bg-zinc-700 transition-all"
+            >
+              <Plus className="w-5 h-5 text-white" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); onSelect(); }}
+              className="w-10 h-10 rounded-full bg-zinc-800/80 border border-zinc-600 flex items-center justify-center hover:border-white hover:bg-zinc-700 transition-all"
+            >
+              <Info className="w-5 h-5 text-white" />
+            </button>
+          </div>
 
           {/* Info no overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-4">
@@ -95,6 +146,7 @@ export default function Filmes() {
   const [busca, setBusca] = useState('');
   const [filtro, setFiltro] = useState<'all' | 'available' | 'missing'>('all');
   const [visualizacao, setVisualizacao] = useState<'grid' | 'list'>('grid');
+  const [filmeSelecionado, setFilmeSelecionado] = useState<MediaItem | null>(null);
 
   // Buscar filmes
   const { data: filmes, isLoading } = useQuery({
@@ -102,6 +154,10 @@ export default function Filmes() {
     queryFn: () => moviesApi.list(),
     retry: false,
   });
+
+  const handleSelecionarFilme = (filme: RadarrMovie) => {
+    setFilmeSelecionado(converterParaMediaItem(filme));
+  };
 
   // Filtrar filmes
   const filmesFiltrados = filmes?.filter(filme => {
@@ -203,13 +259,14 @@ export default function Filmes() {
           }>
             {visualizacao === 'grid' ? (
               filmesFiltrados.map((filme) => (
-                <CardFilme key={filme.id} filme={filme} />
+                <CardFilme key={filme.id} filme={filme} onSelect={() => handleSelecionarFilme(filme)} />
               ))
             ) : (
               filmesFiltrados.map((filme) => (
                 <div
                   key={filme.id}
-                  className="flex items-center gap-4 p-4 rounded-xl bg-zinc-800/30 border border-zinc-800/50 hover:border-zinc-700/50 transition-all group"
+                  onClick={() => handleSelecionarFilme(filme)}
+                  className="flex items-center gap-4 p-4 rounded-xl bg-zinc-800/30 border border-zinc-800/50 hover:border-zinc-700/50 transition-all group cursor-pointer"
                 >
                   <div className="flex-shrink-0 w-16 aspect-[2/3] rounded-lg overflow-hidden bg-zinc-800">
                     {filme.poster ? (
@@ -235,7 +292,10 @@ export default function Filmes() {
                     </div>
                   </div>
                   {filme.hasFile && (
-                    <button className="p-3 rounded-lg bg-red-600 hover:bg-red-500 text-white transition-colors">
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handleSelecionarFilme(filme); }}
+                      className="p-3 rounded-lg bg-red-600 hover:bg-red-500 text-white transition-colors"
+                    >
                       <Play className="w-5 h-5 fill-white" />
                     </button>
                   )}
@@ -265,6 +325,12 @@ export default function Filmes() {
           </div>
         )}
       </div>
+
+      {/* Modal de detalhes */}
+      <ModalMidia
+        media={filmeSelecionado}
+        onClose={() => setFilmeSelecionado(null)}
+      />
     </div>
   );
 }

@@ -26,7 +26,7 @@ export function createServer(): Application {
   app.use(cors({
     origin: config.isProduction
       ? true // Permite mesma origem em produção
-      : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'],
+      : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:5175', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174', 'http://127.0.0.1:5175'],
     credentials: true,
   }));
 
@@ -47,6 +47,26 @@ export function createServer(): Application {
 
   // Request logging
   app.use(requestLogger);
+
+  // API info (root)
+  app.get('/api', (_req, res) => {
+    res.json({
+      success: true,
+      data: {
+        name: 'TorrentFlix API',
+        version: '1.0.0',
+        status: 'online',
+        endpoints: {
+          health: '/api/health',
+          auth: '/api/auth',
+          downloads: '/api/downloads',
+          search: '/api/search',
+          stream: '/api/stream',
+          settings: '/api/settings',
+        },
+      },
+    });
+  });
 
   // Health check (before auth)
   app.get('/api/health', (_req, res) => {

@@ -1,7 +1,7 @@
 import { DataTypes, Model, Optional } from 'sequelize';
 import { sequelize } from '../config/database.js';
 
-export type SettingsCategory = 'qbittorrent' | 'jackett' | 'sonarr' | 'radarr' | 'tmdb' | 'general';
+export type SettingsCategory = 'qbittorrent' | 'jackett' | 'sonarr' | 'radarr' | 'tmdb' | 'path_mapping' | 'general';
 
 export interface SystemSettingsAttributes {
   id: number;
@@ -53,7 +53,7 @@ SystemSettings.init(
       defaultValue: '',
     },
     category: {
-      type: DataTypes.ENUM('qbittorrent', 'jackett', 'sonarr', 'radarr', 'tmdb', 'general'),
+      type: DataTypes.ENUM('qbittorrent', 'jackett', 'sonarr', 'radarr', 'tmdb', 'path_mapping', 'general'),
       allowNull: false,
     },
     isSecret: {

@@ -10,7 +10,9 @@ import {
   RefreshCw,
   Server,
   Key,
-  Globe
+  Globe,
+  FolderSync,
+  HelpCircle
 } from 'lucide-react';
 import { apiClient } from '../../api/client';
 
@@ -18,8 +20,15 @@ interface ConfiguracaoServico {
   habilitado: boolean;
   url: string;
   apiKey: string;
+  senhaUI?: string;
   testado?: boolean;
   erro?: string;
+}
+
+interface MapeamentoCaminhos {
+  habilitado: boolean;
+  caminhoRemoto: string;  // Caminho no servidor do qBittorrent
+  caminhoLocal: string;   // Caminho local/mapeado
 }
 
 interface Configuracoes {
@@ -34,6 +43,7 @@ interface Configuracoes {
   tmdb: {
     apiKey: string;
   };
+  mapeamentoCaminhos: MapeamentoCaminhos;
 }
 
 // API functions
@@ -64,9 +74,15 @@ const configApi = {
         habilitado: settings.jackett?.enabled || false,
         url: settings.jackett?.url || '',
         apiKey: settings.jackett?.api_key || '',
+        senhaUI: settings.jackett?.password || '',
       },
       tmdb: {
         apiKey: settings.tmdb?.api_key || '',
+      },
+      mapeamentoCaminhos: {
+        habilitado: settings.path_mapping?.enabled || false,
+        caminhoRemoto: settings.path_mapping?.remote || '',
+        caminhoLocal: settings.path_mapping?.local || '',
       },
     };
   },
@@ -93,9 +109,17 @@ const configApi = {
       settings.jackett_enabled = String(dados.jackett.habilitado);
       settings.jackett_url = dados.jackett.url;
       settings.jackett_api_key = dados.jackett.apiKey;
+      if (dados.jackett.senhaUI) {
+        settings.jackett_password = dados.jackett.senhaUI;
+      }
     }
     if (dados.tmdb) {
       settings.tmdb_api_key = dados.tmdb.apiKey;
+    }
+    if (dados.mapeamentoCaminhos) {
+      settings.path_mapping_enabled = String(dados.mapeamentoCaminhos.habilitado);
+      settings.path_mapping_remote = dados.mapeamentoCaminhos.caminhoRemoto;
+      settings.path_mapping_local = dados.mapeamentoCaminhos.caminhoLocal;
     }
 
     const response = await apiClient.put('/admin/configuracoes', { settings });
@@ -210,8 +234,9 @@ export default function Configuracoes() {
     qbittorrent: { url: '', usuario: '', senha: '' },
     sonarr: { habilitado: false, url: '', apiKey: '' },
     radarr: { habilitado: false, url: '', apiKey: '' },
-    jackett: { habilitado: false, url: '', apiKey: '' },
+    jackett: { habilitado: false, url: '', apiKey: '', senhaUI: '' },
     tmdb: { apiKey: '' },
+    mapeamentoCaminhos: { habilitado: false, caminhoRemoto: '', caminhoLocal: '' },
   });
   const [resultadosTeste, setResultadosTeste] = useState<Record<string, { sucesso: boolean; mensagem: string } | null>>({});
   const [testando, setTestando] = useState<string | null>(null);
@@ -221,8 +246,9 @@ export default function Configuracoes() {
     qbittorrent: { url: '', usuario: '', senha: '' },
     sonarr: { habilitado: false, url: '', apiKey: '' },
     radarr: { habilitado: false, url: '', apiKey: '' },
-    jackett: { habilitado: false, url: '', apiKey: '' },
+    jackett: { habilitado: false, url: '', apiKey: '', senhaUI: '' },
     tmdb: { apiKey: '' },
+    mapeamentoCaminhos: { habilitado: false, caminhoRemoto: '', caminhoLocal: '' },
   };
 
   // Carregar configuracoes
@@ -238,6 +264,7 @@ export default function Configuracoes() {
           radarr: { ...configPadrao.radarr, ...dados?.radarr },
           jackett: { ...configPadrao.jackett, ...dados?.jackett },
           tmdb: { ...configPadrao.tmdb, ...dados?.tmdb },
+          mapeamentoCaminhos: { ...configPadrao.mapeamentoCaminhos, ...dados?.mapeamentoCaminhos },
         });
         return dados;
       } catch (error) {
@@ -262,8 +289,16 @@ export default function Configuracoes() {
   const handleTestar = async (servico: string) => {
     setTestando(servico);
     try {
+      // Primeiro salva as configurações atuais
+      await configApi.salvar(config);
+
+      // Depois testa a conexão
       const resultado = await configApi.testar(servico);
       setResultadosTeste(prev => ({ ...prev, [servico]: resultado }));
+
+      if (resultado.sucesso) {
+        queryClient.invalidateQueries({ queryKey: ['admin-configuracoes'] });
+      }
     } catch (error: any) {
       setResultadosTeste(prev => ({
         ...prev,
@@ -488,6 +523,20 @@ export default function Configuracoes() {
             placeholder="Chave de API do Jackett"
           />
         </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-400 mb-2">Senha UI (opcional)</label>
+          <CampoSenha
+            valor={config.jackett?.senhaUI || ''}
+            onChange={(v) => setConfig(prev => ({
+              ...prev,
+              jackett: { ...prev.jackett, senhaUI: v }
+            }))}
+            placeholder="Senha do painel do Jackett (se configurada)"
+          />
+          <p className="text-xs text-zinc-500 mt-1">
+            Preencha apenas se voce configurou uma senha de admin no Jackett
+          </p>
+        </div>
       </SecaoServico>
 
       {/* TMDB */}
@@ -515,6 +564,83 @@ export default function Configuracoes() {
             themoviedb.org
           </a>
         </p>
+      </SecaoServico>
+
+      {/* Mapeamento de Caminhos */}
+      <SecaoServico
+        titulo="Mapeamento de Caminhos"
+        icone={FolderSync}
+      >
+        <div className="flex items-center justify-between p-4 rounded-lg bg-zinc-800/50">
+          <div className="flex items-center gap-2">
+            <span className="text-zinc-300">Habilitar Mapeamento</span>
+            <div className="group relative">
+              <HelpCircle className="w-4 h-4 text-zinc-500 cursor-help" />
+              <div className="absolute left-0 bottom-full mb-2 w-72 p-3 bg-zinc-800 rounded-lg text-xs text-zinc-300 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-xl border border-zinc-700">
+                Use esta opcao quando o qBittorrent esta em outro servidor.
+                O caminho remoto e o que aparece no qBittorrent, e o caminho local
+                e onde os arquivos estao mapeados neste servidor.
+              </div>
+            </div>
+          </div>
+          <button
+            onClick={() => setConfig(prev => ({
+              ...prev,
+              mapeamentoCaminhos: { ...prev.mapeamentoCaminhos, habilitado: !prev.mapeamentoCaminhos.habilitado }
+            }))}
+            className={`w-12 h-6 rounded-full transition-colors ${
+              config.mapeamentoCaminhos?.habilitado ? 'bg-green-600' : 'bg-zinc-600'
+            }`}
+          >
+            <div className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform ${
+              config.mapeamentoCaminhos?.habilitado ? 'translate-x-6' : 'translate-x-0.5'
+            }`} />
+          </button>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-400 mb-2">
+            Caminho Remoto (qBittorrent)
+          </label>
+          <input
+            type="text"
+            value={config.mapeamentoCaminhos?.caminhoRemoto || ''}
+            onChange={(e) => setConfig(prev => ({
+              ...prev,
+              mapeamentoCaminhos: { ...prev.mapeamentoCaminhos, caminhoRemoto: e.target.value }
+            }))}
+            placeholder="/downloads ou /data/torrents"
+            className="w-full px-4 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-500 focus:outline-none focus:border-red-600"
+          />
+          <p className="text-xs text-zinc-500 mt-1">
+            Caminho conforme aparece nas configuracoes do qBittorrent (save_path)
+          </p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-zinc-400 mb-2">
+            Caminho Local (Este Servidor)
+          </label>
+          <input
+            type="text"
+            value={config.mapeamentoCaminhos?.caminhoLocal || ''}
+            onChange={(e) => setConfig(prev => ({
+              ...prev,
+              mapeamentoCaminhos: { ...prev.mapeamentoCaminhos, caminhoLocal: e.target.value }
+            }))}
+            placeholder="D:\Downloads ou /mnt/downloads"
+            className="w-full px-4 py-3 rounded-lg bg-zinc-800 border border-zinc-700 text-white placeholder-zinc-500 focus:outline-none focus:border-red-600"
+          />
+          <p className="text-xs text-zinc-500 mt-1">
+            Caminho onde os arquivos estao acessiveis neste servidor (share de rede ou pasta local)
+          </p>
+        </div>
+        <div className="p-4 rounded-lg bg-amber-500/10 border border-amber-500/30">
+          <p className="text-sm text-amber-400">
+            <strong>Exemplo:</strong> Se o qBittorrent salva em <code className="bg-zinc-800 px-1 rounded">/downloads</code> mas
+            neste servidor os arquivos estao em <code className="bg-zinc-800 px-1 rounded">D:\Torrents</code>, configure:
+            <br />- Remoto: <code className="bg-zinc-800 px-1 rounded">/downloads</code>
+            <br />- Local: <code className="bg-zinc-800 px-1 rounded">D:\Torrents</code>
+          </p>
+        </div>
       </SecaoServico>
 
       {/* Botao Salvar */}

@@ -219,10 +219,12 @@ export interface MovieInfo {
   tmdbId: number;
   imdbId: string | null;
   path: string;
+  filePath: string | null;
   added: Date;
   genres: string[];
   runtime: number;
   certification: string | null;
+  ratings?: { imdb?: { value: number }; tmdb?: { value: number } };
 }
 
 // Transform functions
@@ -273,9 +275,14 @@ export function transformMovie(movie: RadarrMovie): MovieInfo {
     tmdbId: movie.tmdbId,
     imdbId: movie.imdbId || null,
     path: movie.path,
+    filePath: movie.movieFile?.path || null,
     added: new Date(movie.added),
     genres: movie.genres,
     runtime: movie.runtime,
     certification: movie.certification || null,
+    ratings: movie.ratings ? {
+      imdb: movie.ratings.value ? { value: movie.ratings.value } : undefined,
+      tmdb: movie.ratings.value ? { value: movie.ratings.value } : undefined,
+    } : undefined,
   };
 }

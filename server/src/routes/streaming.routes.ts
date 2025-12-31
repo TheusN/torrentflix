@@ -4,8 +4,11 @@ import { authenticate, optionalAuth } from '../middleware/auth.middleware.js';
 
 const router = Router();
 
-// Stream endpoint - optional auth for flexibility (can be protected if needed)
-// Using optional auth to allow direct video player access
+// Stream movie from Radarr by movie ID
+router.get('/movie/:movieId', optionalAuth, streamingController.streamMovie.bind(streamingController));
+router.get('/movie/:movieId/info', authenticate, streamingController.getMovieInfo.bind(streamingController));
+
+// Stream endpoint from qBittorrent - optional auth for flexibility
 router.get('/:hash/:fileIndex', optionalAuth, streamingController.stream.bind(streamingController));
 
 // Info endpoint - requires authentication
