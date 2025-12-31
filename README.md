@@ -396,3 +396,4 @@ No painel de configuracoes, use o botao **"Testar Conexao"** para validar:
 ## Licenca
 
 MIT License - veja [LICENSE](LICENSE) para detalhes.
+
