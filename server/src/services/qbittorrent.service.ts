@@ -76,9 +76,16 @@ class QBittorrentService {
 
       logger.info('qBittorrent authenticated successfully');
       return qbConfig.url;
-    } catch (error) {
-      logger.error('qBittorrent authentication failed:', error);
-      throw new Error('Falha ao conectar com qBittorrent. Verifique URL e credenciais.');
+    } catch (error: any) {
+      const errorMsg = error?.message || 'Erro desconhecido';
+      logger.error(`qBittorrent authentication failed: ${errorMsg}`, error);
+
+      // Verificar se é erro de ban
+      if (errorMsg.includes('403') || errorMsg.includes('banned') || errorMsg.includes('Forbidden')) {
+        throw new Error('IP banido pelo qBittorrent. Desbloqueie em Options > Web UI > IP Ban List.');
+      }
+
+      throw new Error(`Falha ao conectar com qBittorrent: ${errorMsg}`);
     }
   }
 
