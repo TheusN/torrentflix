@@ -22,10 +22,10 @@ export function createServer(): Application {
     contentSecurityPolicy: false, // Disable for streaming
   }));
 
-  // CORS
+  // CORS - Em produção, permite mesma origem (frontend servido pelo mesmo servidor)
   app.use(cors({
     origin: config.isProduction
-      ? process.env.FRONTEND_URL
+      ? true // Permite mesma origem em produção
       : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'],
     credentials: true,
   }));
@@ -65,10 +65,12 @@ export function createServer(): Application {
 
   // Serve static files (client build in production)
   if (config.isProduction) {
-    const clientBuildPath = path.join(__dirname, '../../client/dist');
+    // Em produção, __dirname = /app/dist, cliente está em /app/client/dist
+    const clientBuildPath = path.join(__dirname, '../client/dist');
+    logger.info(`Serving static files from: ${clientBuildPath}`);
     app.use(express.static(clientBuildPath));
 
-    // SPA fallback
+    // SPA fallback - todas as rotas não-API servem o index.html
     app.get('*', (_req, res) => {
       res.sendFile(path.join(clientBuildPath, 'index.html'));
     });
