@@ -13,8 +13,8 @@ services:
       - NODE_ENV=production
       - PORT=3000
       - DATABASE_URL=postgres://torrentflix:torrentflix123@db:5432/torrentflix
-      - JWT_SECRET=${JWT_SECRET:-}
-      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-}
+      - JWT_SECRET=${JWT_SECRET:-torrentflix-default-jwt-secret-change-me}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-torrentflix-default-refresh-secret-change-me}
       - JWT_ACCESS_EXPIRY=15m
       - JWT_REFRESH_EXPIRY=7d
       - QBITTORRENT_HOST=${QBITTORRENT_HOST:-http://localhost}
