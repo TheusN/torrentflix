@@ -11,7 +11,6 @@ import {
   Minimize,
   SkipBack,
   SkipForward,
-  Settings,
   RefreshCw
 } from 'lucide-react';
 import { downloadsApi, formatBytes } from '../../api/downloads.api';

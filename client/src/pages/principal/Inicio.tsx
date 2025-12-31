@@ -133,7 +133,7 @@ export default function Inicio() {
   }, [trendingData]);
 
   const filmesDisponiveis = moviesData?.filter(m => m.hasFile) || [];
-  const seriesDisponiveis = seriesData?.filter(s => s.statistics?.percentOfEpisodes > 0) || [];
+  const seriesDisponiveis = seriesData?.filter(s => (s.statistics?.percentOfEpisodes || 0) > 0) || [];
 
   return (
     <div className="min-h-screen">

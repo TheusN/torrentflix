@@ -1,16 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import {
-  BarChart3,
   TrendingUp,
   Download,
   Upload,
   Film,
   Tv,
-  Users,
   HardDrive,
-  Calendar,
-  Activity,
-  RefreshCw
+  Activity
 } from 'lucide-react';
 import { downloadsApi, formatBytes, formatSpeed } from '../../api/downloads.api';
 import { seriesApi, moviesApi } from '../../api/media.api';

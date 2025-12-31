@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Play, Trash2, Plus, Film, Tv, Heart, RefreshCw } from 'lucide-react';
+import { Play, Trash2, Film, Tv, Heart, RefreshCw } from 'lucide-react';
 import { apiClient } from '../../api/client';
 
 interface ItemLista {

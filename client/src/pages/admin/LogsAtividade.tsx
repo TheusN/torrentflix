@@ -3,9 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import {
   FileText,
   Search,
-  Filter,
   RefreshCw,
-  User,
   LogIn,
   LogOut,
   Download,

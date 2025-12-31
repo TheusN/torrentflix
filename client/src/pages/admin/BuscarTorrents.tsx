@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
-import { Search, Download, ExternalLink, RefreshCw } from 'lucide-react';
+import { Search, Download, RefreshCw } from 'lucide-react';
 import { searchApi, formatSize, formatDate } from '../../api/search.api';
 import type { SearchResult } from '../../api/search.api';
 import { downloadsApi } from '../../api/downloads.api';

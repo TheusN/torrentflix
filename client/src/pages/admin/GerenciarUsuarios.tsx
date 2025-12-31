@@ -10,8 +10,6 @@ import {
   Check,
   Shield,
   User as UserIcon,
-  Mail,
-  Calendar,
   RefreshCw
 } from 'lucide-react';
 import { apiClient } from '../../api/client';

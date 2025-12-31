@@ -1,9 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Play, Search, Grid, List, Star, Tv, RefreshCw, Calendar, ChevronRight } from 'lucide-react';
+import { Play, Search, Grid, List, Star, Tv, RefreshCw, ChevronRight } from 'lucide-react';
 import { seriesApi } from '../../api/media.api';
-import { formatBytes } from '../../api/downloads.api';
 import type { SonarrSeries } from '../../api/media.api';
 
 function CardSerie({ serie }: { serie: SonarrSeries }) {

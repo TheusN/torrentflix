@@ -21,6 +21,17 @@ export interface SeriesInfo {
   path: string;
   added: string;
   genres: string[];
+  statistics?: {
+    seasonCount?: number;
+    episodeCount?: number;
+    episodeFileCount?: number;
+    sizeOnDisk?: number;
+    percentOfEpisodes?: number;
+  };
+  ratings?: {
+    votes?: number;
+    value?: number;
+  };
 }
 
 export interface SeriesLookupResult {
@@ -62,6 +73,12 @@ export interface MovieInfo {
   genres: string[];
   runtime: number;
   certification: string | null;
+  ratings?: {
+    imdb?: { votes: number; value: number };
+    tmdb?: { votes: number; value: number };
+    votes?: number;
+    value?: number;
+  };
 }
 
 export interface MovieLookupResult {

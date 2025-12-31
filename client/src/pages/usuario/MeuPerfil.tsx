@@ -283,8 +283,8 @@ export default function MeuPerfil() {
           <div className="flex items-center justify-between py-2">
             <span className="text-zinc-500">Membro desde</span>
             <span className="text-zinc-300">
-              {user?.created_at
-                ? new Date(user.created_at).toLocaleDateString('pt-BR')
+              {user?.createdAt
+                ? new Date(user.createdAt).toLocaleDateString('pt-BR')
                 : '-'}
             </span>
           </div>
