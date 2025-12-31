@@ -20,15 +20,15 @@ export interface UserCreationAttributes extends Optional<UserAttributes, 'id' | 
 
 // User model class
 export class User extends Model<UserAttributes, UserCreationAttributes> implements UserAttributes {
-  public id!: number;
-  public email!: string;
-  public passwordHash!: string;
-  public name!: string;
-  public role!: 'admin' | 'user';
-  public isActive!: boolean;
-  public createdAt!: Date;
-  public updatedAt!: Date;
-  public lastLogin!: Date | null;
+  declare id: number;
+  declare email: string;
+  declare passwordHash: string;
+  declare name: string;
+  declare role: 'admin' | 'user';
+  declare isActive: boolean;
+  declare createdAt: Date;
+  declare updatedAt: Date;
+  declare lastLogin: Date | null;
 
   // Instance method to check password
   public async checkPassword(password: string): Promise<boolean> {

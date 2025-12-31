@@ -215,9 +215,10 @@ export function DashboardPage() {
 
   // Set featured media from trending
   useEffect(() => {
-    if (trendingData?.results?.length > 0) {
-      const randomIndex = Math.floor(Math.random() * Math.min(5, trendingData.results.length));
-      setFeaturedMedia(trendingData.results[randomIndex]);
+    const results = trendingData?.results;
+    if (results && results.length > 0) {
+      const randomIndex = Math.floor(Math.random() * Math.min(5, results.length));
+      setFeaturedMedia(results[randomIndex]);
     }
   }, [trendingData]);
 

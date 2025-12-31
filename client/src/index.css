@@ -1,87 +1,134 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
-/* Custom base styles */
-@layer base {
-  :root {
-    --primary: #e50914;
-    --primary-dark: #b20710;
-    --dark: #141414;
-    --dark-lighter: #1a1a1a;
-    --dark-card: #1e1e1e;
-    --dark-border: #2a2a2a;
-  }
+/* Custom theme configuration for Tailwind v4 */
+@theme {
+  /* Primary colors (Netflix red) */
+  --color-primary: #e50914;
+  --color-primary-dark: #b20710;
+  --color-primary-light: #ff6b6b;
 
-  body {
-    @apply bg-dark text-white font-sans antialiased;
-  }
+  /* Dark theme colors */
+  --color-dark: #141414;
+  --color-dark-lighter: #1a1a1a;
+  --color-dark-card: #1e1e1e;
+  --color-dark-border: #2a2a2a;
+}
 
-  /* Custom scrollbar */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
+/* Base styles */
+body {
+  background-color: var(--color-dark);
+  color: white;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
-  ::-webkit-scrollbar-track {
-    @apply bg-dark-lighter;
-  }
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
 
-  ::-webkit-scrollbar-thumb {
-    @apply bg-dark-border rounded-full;
-  }
+::-webkit-scrollbar-track {
+  background: var(--color-dark-lighter);
+}
 
-  ::-webkit-scrollbar-thumb:hover {
-    @apply bg-gray-600;
-  }
+::-webkit-scrollbar-thumb {
+  background: var(--color-dark-border);
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4b5563;
 }
 
 /* Custom component styles */
-@layer components {
-  .btn {
-    @apply px-4 py-2 rounded-lg font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
-  }
+.btn {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s;
+}
 
-  .btn-primary {
-    @apply btn bg-primary hover:bg-primary-dark text-white;
-  }
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
-  .btn-secondary {
-    @apply btn bg-dark-card hover:bg-dark-border text-white border border-dark-border;
-  }
+.btn-primary {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  background-color: var(--color-primary);
+  color: white;
+}
 
-  .card {
-    @apply bg-dark-card rounded-xl border border-dark-border p-4;
-  }
+.btn-primary:hover {
+  background-color: var(--color-primary-dark);
+}
 
-  .input {
-    @apply w-full px-4 py-3 bg-dark-lighter border border-dark-border rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-primary transition-colors;
-  }
+.btn-secondary {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  background-color: var(--color-dark-card);
+  color: white;
+  border: 1px solid var(--color-dark-border);
+}
+
+.btn-secondary:hover {
+  background-color: var(--color-dark-lighter);
+}
+
+.card {
+  background-color: var(--color-dark-card);
+  border-radius: 0.75rem;
+  border: 1px solid var(--color-dark-border);
+  padding: 1rem;
+}
+
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background-color: var(--color-dark-card);
+  border: 1px solid var(--color-dark-border);
+  border-radius: 0.5rem;
+  color: white;
+  transition: border-color 0.2s;
+}
+
+.input::placeholder {
+  color: #6b7280;
+}
+
+.input:focus {
+  outline: none;
+  border-color: var(--color-primary);
 }
 
 /* Animation utilities */
-@layer utilities {
-  .animate-fade-in {
-    animation: fadeIn 0.3s ease-in-out;
-  }
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
 
-  @keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
 
-  .animate-slide-up {
-    animation: slideUp 0.3s ease-out;
-  }
+.animate-slide-up {
+  animation: slideUp 0.3s ease-out;
+}
 
-  @keyframes slideUp {
-    from {
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

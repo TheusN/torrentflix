@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  # TorrentFlix Application
+  torrentflix:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: torrentflix
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - DATABASE_URL=${DATABASE_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET}
+      - JWT_ACCESS_EXPIRY=${JWT_ACCESS_EXPIRY:-15m}
+      - JWT_REFRESH_EXPIRY=${JWT_REFRESH_EXPIRY:-7d}
+      - QBITTORRENT_HOST=${QBITTORRENT_HOST:-http://qbittorrent}
+      - QBITTORRENT_PORT=${QBITTORRENT_PORT:-8080}
+      - QBITTORRENT_USER=${QBITTORRENT_USER:-admin}
+      - QBITTORRENT_PASS=${QBITTORRENT_PASS:-adminadmin}
+      - JACKETT_HOST=${JACKETT_HOST:-http://jackett}
+      - JACKETT_PORT=${JACKETT_PORT:-9117}
+      - JACKETT_API_KEY=${JACKETT_API_KEY}
+      - SONARR_HOST=${SONARR_HOST:-http://sonarr}
+      - SONARR_PORT=${SONARR_PORT:-8989}
+      - SONARR_API_KEY=${SONARR_API_KEY}
+      - RADARR_HOST=${RADARR_HOST:-http://radarr}
+      - RADARR_PORT=${RADARR_PORT:-7878}
+      - RADARR_API_KEY=${RADARR_API_KEY}
+      - DOWNLOAD_PATH=${DOWNLOAD_PATH:-/downloads}
+      - MEDIA_PATH=${MEDIA_PATH:-/media}
+    volumes:
+      - ${DOWNLOAD_PATH:-./downloads}:/downloads:ro
+      - ${MEDIA_PATH:-./media}:/media:ro
+    networks:
+      - torrentflix-network
+      - arr-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: torrentflix-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${DB_USER:-torrentflix}
+      - POSTGRES_PASSWORD=${DB_PASSWORD:-torrentflix123}
+      - POSTGRES_DB=${DB_NAME:-torrentflix}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - torrentflix-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-torrentflix} -d ${DB_NAME:-torrentflix}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+networks:
+  torrentflix-network:
+    driver: bridge
+  # External network to connect with *arr stack
+  arr-network:
+    external: true
+    name: ${ARR_NETWORK_NAME:-arr_default}
+
+volumes:
+  postgres_data:
+    driver: local

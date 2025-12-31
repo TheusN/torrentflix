@@ -26,16 +26,18 @@ export function createServer(): Application {
   app.use(cors({
     origin: config.isProduction
       ? process.env.FRONTEND_URL
-      : ['http://localhost:5173', 'http://localhost:3000', 'http://127.0.0.1:5173'],
+      : ['http://localhost:5173', 'http://localhost:5174', 'http://localhost:3000', 'http://127.0.0.1:5173', 'http://127.0.0.1:5174'],
     credentials: true,
   }));
 
-  // Rate limiting
+  // Rate limiting (mais permissivo em desenvolvimento)
   const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-    message: { success: false, error: { message: 'Too many requests, please try again later.' } },
-    skip: (req) => req.path.startsWith('/api/stream'), // Skip rate limit for streaming
+    windowMs: 1 * 60 * 1000, // 1 minuto
+    max: config.isProduction ? 100 : 500, // 500 requisicoes por minuto em dev
+    message: { success: false, error: { message: 'Muitas requisicoes, tente novamente em alguns segundos.' } },
+    skip: (req) => req.path.startsWith('/api/stream') || req.path.startsWith('/api/health'),
+    standardHeaders: true,
+    legacyHeaders: false,
   });
   app.use('/api/', limiter);
 

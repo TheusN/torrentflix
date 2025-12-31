@@ -3,25 +3,44 @@ import { config } from './index.js';
 import { logger } from '../middleware/logger.middleware.js';
 
 // Create Sequelize instance
-export const sequelize = new Sequelize({
-  dialect: 'postgres',
-  host: config.database.host,
-  port: config.database.port,
-  database: config.database.name,
-  username: config.database.user,
-  password: config.database.password,
-  logging: config.isProduction ? false : (msg) => logger.debug(msg),
-  pool: {
-    max: 10,
-    min: 0,
-    acquire: 30000,
-    idle: 10000,
-  },
-  define: {
-    timestamps: true,
-    underscored: true,
-  },
-});
+// Use DATABASE_URL if available, otherwise use individual config values
+export const sequelize = config.database.url
+  ? new Sequelize(config.database.url, {
+      dialect: 'postgres',
+      logging: config.isProduction ? false : (msg) => logger.debug(msg),
+      pool: {
+        max: 10,
+        min: 0,
+        acquire: 30000,
+        idle: 10000,
+      },
+      define: {
+        timestamps: true,
+        underscored: true,
+      },
+      dialectOptions: {
+        ssl: false,
+      },
+    })
+  : new Sequelize({
+      dialect: 'postgres',
+      host: config.database.host,
+      port: config.database.port,
+      database: config.database.name,
+      username: config.database.user,
+      password: config.database.password,
+      logging: config.isProduction ? false : (msg) => logger.debug(msg),
+      pool: {
+        max: 10,
+        min: 0,
+        acquire: 30000,
+        idle: 10000,
+      },
+      define: {
+        timestamps: true,
+        underscored: true,
+      },
+    });
 
 // Test database connection
 export async function connectDatabase(): Promise<void> {

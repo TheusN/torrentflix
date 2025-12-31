@@ -39,6 +39,11 @@ export const config = {
     username: process.env.QBITTORRENT_USER || 'admin',
     password: process.env.QBITTORRENT_PASS || 'adminadmin',
     get baseUrl() {
+      // Se for HTTPS na porta 443 ou HTTP na porta 80, não inclui a porta na URL
+      if ((this.host.startsWith('https://') && this.port === 443) ||
+          (this.host.startsWith('http://') && this.port === 80)) {
+        return this.host;
+      }
       return `${this.host}:${this.port}`;
     },
   },

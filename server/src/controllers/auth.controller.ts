@@ -10,14 +10,14 @@ class AuthController {
       const { email, password, name } = req.body;
 
       if (!email || !password || !name) {
-        throw new BadRequestError('Email, password and name are required');
+        throw new BadRequestError('E-mail, senha e nome sao obrigatorios');
       }
 
       const user = await authService.register({ email, password, name });
 
       res.status(201).json({
         success: true,
-        message: 'User registered successfully',
+        message: 'Usuario registrado com sucesso',
         data: { user },
       });
     } catch (error) {
@@ -31,14 +31,14 @@ class AuthController {
       const { email, password } = req.body;
 
       if (!email || !password) {
-        throw new BadRequestError('Email and password are required');
+        throw new BadRequestError('E-mail e senha sao obrigatorios');
       }
 
       const result = await authService.login({ email, password });
 
       res.json({
         success: true,
-        message: 'Login successful',
+        message: 'Login realizado com sucesso',
         data: result,
       });
     } catch (error) {
@@ -52,14 +52,14 @@ class AuthController {
       const { refreshToken } = req.body;
 
       if (!refreshToken) {
-        throw new BadRequestError('Refresh token is required');
+        throw new BadRequestError('Token de atualizacao obrigatorio');
       }
 
       const result = await authService.refreshToken(refreshToken);
 
       res.json({
         success: true,
-        message: 'Token refreshed successfully',
+        message: 'Token atualizado com sucesso',
         data: result,
       });
     } catch (error) {
@@ -78,7 +78,7 @@ class AuthController {
 
       res.json({
         success: true,
-        message: 'Logged out successfully',
+        message: 'Sessao encerrada com sucesso',
       });
     } catch (error) {
       next(error);
@@ -89,14 +89,14 @@ class AuthController {
   async logoutAll(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        throw new BadRequestError('User not authenticated');
+        throw new BadRequestError('Usuario nao autenticado');
       }
 
       await authService.logoutAll(req.user.userId);
 
       res.json({
         success: true,
-        message: 'Logged out from all devices',
+        message: 'Sessao encerrada em todos os dispositivos',
       });
     } catch (error) {
       next(error);
@@ -107,7 +107,7 @@ class AuthController {
   async me(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
       if (!req.user) {
-        throw new BadRequestError('User not authenticated');
+        throw new BadRequestError('Usuario nao autenticado');
       }
 
       const user = await authService.getUserById(req.user.userId);

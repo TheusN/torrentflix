@@ -4,13 +4,13 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
 import {
   downloadsApi,
-  TorrentInfo,
   formatBytes,
   formatSpeed,
   formatEta,
   getStateLabel,
   getStateColor,
 } from '../api/downloads.api';
+import type { TorrentInfo } from '../api/downloads.api';
 
 function TorrentCard({ torrent, onPause, onResume, onDelete, onViewFiles }: {
   torrent: TorrentInfo;

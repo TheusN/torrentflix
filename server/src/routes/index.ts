@@ -4,6 +4,8 @@ import downloadRoutes from './download.routes.js';
 import streamingRoutes from './streaming.routes.js';
 import searchRoutes from './search.routes.js';
 import { seriesRouter, moviesRouter } from './media.routes.js';
+import adminRoutes from './admin.routes.js';
+import userRoutes from './user.routes.js';
 
 const router = Router();
 
@@ -14,6 +16,8 @@ router.use('/stream', streamingRoutes);
 router.use('/search', searchRoutes);
 router.use('/series', seriesRouter);
 router.use('/movies', moviesRouter);
+router.use('/admin', adminRoutes);
+router.use('/usuario', userRoutes);
 
 // Temporary test route
 router.get('/test', (_req, res) => {

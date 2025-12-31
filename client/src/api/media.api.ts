@@ -32,6 +32,7 @@ export interface SeriesLookupResult {
   images: { coverType: string; remoteUrl: string }[];
   remotePoster: string;
   seasons: { seasonNumber: number; monitored: boolean }[];
+  seasonCount: number;
   year: number;
   tvdbId: number;
   imdbId: string;
@@ -82,7 +83,12 @@ export interface MovieLookupResult {
   titleSlug: string;
   certification: string;
   genres: string[];
-  ratings: { votes: number; value: number };
+  ratings: {
+    imdb?: { votes: number; value: number };
+    tmdb?: { votes: number; value: number };
+    votes?: number;
+    value?: number;
+  };
 }
 
 export interface QualityProfile {
@@ -106,6 +112,12 @@ export interface QueueItem {
   timeleft: string;
   estimatedCompletionTime: string;
 }
+
+// Type aliases for consistency with page components
+export type SonarrSeries = SeriesInfo;
+export type SonarrSearchResult = SeriesLookupResult;
+export type RadarrMovie = MovieInfo;
+export type RadarrSearchResult = MovieLookupResult;
 
 // Series API
 export const seriesApi = {
@@ -148,7 +160,14 @@ export const seriesApi = {
   },
 
   // Add series
-  async add(data: { title: string; tvdbId: number; qualityProfileId: number; rootFolderPath: string }): Promise<SeriesInfo> {
+  async add(data: {
+    title: string;
+    tvdbId: number;
+    qualityProfileId: number;
+    rootFolderPath: string;
+    monitored?: boolean;
+    addOptions?: { searchForMissingEpisodes?: boolean };
+  }): Promise<SeriesInfo> {
     const response = await apiClient.post<{ success: boolean; data: { series: SeriesInfo } }>('/series', data);
     return response.data.data.series;
   },
@@ -205,7 +224,14 @@ export const moviesApi = {
   },
 
   // Add movie
-  async add(data: { title: string; tmdbId: number; qualityProfileId: number; rootFolderPath: string }): Promise<MovieInfo> {
+  async add(data: {
+    title: string;
+    tmdbId: number;
+    qualityProfileId: number;
+    rootFolderPath: string;
+    monitored?: boolean;
+    addOptions?: { searchForMovie?: boolean };
+  }): Promise<MovieInfo> {
     const response = await apiClient.post<{ success: boolean; data: { movie: MovieInfo } }>('/movies', data);
     return response.data.data.movie;
   },

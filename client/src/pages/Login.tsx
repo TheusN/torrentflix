@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { LoginForm, RegisterForm } from '../components/auth';
 import { useAuth } from '../context/AuthContext';
@@ -12,12 +12,13 @@ export function LoginPage() {
   const [view, setView] = useState<AuthView>('login');
 
   // Redirect if already authenticated
-  const from = (location.state as any)?.from?.pathname || '/';
+  const from = (location.state as any)?.from?.pathname || '/app/inicio';
 
-  if (isAuthenticated) {
-    navigate(from, { replace: true });
-    return null;
-  }
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate(from, { replace: true });
+    }
+  }, [isAuthenticated, navigate, from]);
 
   const handleLoginSuccess = () => {
     navigate(from, { replace: true });

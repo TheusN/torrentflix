@@ -2,9 +2,10 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { useAuth } from '../context/AuthContext';
-import { searchApi, SearchResult, formatSize, formatDate } from '../api/search.api';
+import { searchApi, formatSize, formatDate } from '../api/search.api';
+import type { SearchResult } from '../api/search.api';
 import { downloadsApi } from '../api/downloads.api';
-import { tmdbApi, getImageUrl, TMDBMovie, TMDBSeries } from '../api/tmdb.api';
+import { tmdbApi, getImageUrl } from '../api/tmdb.api';
 
 export function SearchPage() {
   const { user, logout } = useAuth();
@@ -24,13 +25,13 @@ export function SearchPage() {
   });
 
   // Search TMDB
-  const { data: tmdbMovies, isLoading: tmdbMoviesLoading } = useQuery({
+  const { data: tmdbMovies } = useQuery({
     queryKey: ['tmdb-movies', query],
     queryFn: () => tmdbApi.searchMovies(query),
     enabled: query.length > 2 && activeTab === 'tmdb',
   });
 
-  const { data: tmdbSeries, isLoading: tmdbSeriesLoading } = useQuery({
+  const { data: tmdbSeries } = useQuery({
     queryKey: ['tmdb-series', query],
     queryFn: () => tmdbApi.searchSeries(query),
     enabled: query.length > 2 && activeTab === 'tmdb',

@@ -1,10 +1,20 @@
 import jwt from 'jsonwebtoken';
-import bcrypt from 'bcrypt';
 import { User } from '../models/User.js';
 import { RefreshToken } from '../models/RefreshToken.js';
 import { config } from '../config/index.js';
 import { UnauthorizedError, ConflictError, BadRequestError } from '../middleware/error.middleware.js';
 import { JwtPayload } from '../types/index.js';
+
+// Safe user type (without sensitive fields)
+export interface SafeUser {
+  id: number;
+  email: string;
+  name: string;
+  role: 'admin' | 'user';
+  isActive: boolean;
+  createdAt: Date;
+  lastLogin: Date | null;
+}
 
 // Types
 export interface RegisterDto {
@@ -21,7 +31,7 @@ export interface LoginDto {
 export interface AuthResponse {
   accessToken: string;
   refreshToken: string;
-  user: Omit<User, 'passwordHash'>;
+  user: SafeUser;
 }
 
 export interface TokenPayload {
@@ -32,16 +42,16 @@ export interface TokenPayload {
 
 class AuthService {
   // Register new user
-  async register(data: RegisterDto): Promise<Omit<User, 'passwordHash'>> {
+  async register(data: RegisterDto): Promise<SafeUser> {
     // Check if email already exists
     const existingUser = await User.findOne({ where: { email: data.email } });
     if (existingUser) {
-      throw new ConflictError('Email already registered');
+      throw new ConflictError('E-mail ja cadastrado');
     }
 
     // Validate password
     if (data.password.length < 6) {
-      throw new BadRequestError('Password must be at least 6 characters');
+      throw new BadRequestError('A senha deve ter pelo menos 6 caracteres');
     }
 
     // Create user (password will be hashed by model hook)
@@ -51,7 +61,7 @@ class AuthService {
       name: data.name,
     });
 
-    return user.toSafeObject();
+    return user.toSafeObject() as SafeUser;
   }
 
   // Login user
@@ -59,18 +69,18 @@ class AuthService {
     // Find user by email
     const user = await User.findOne({ where: { email: data.email } });
     if (!user) {
-      throw new UnauthorizedError('Invalid email or password');
+      throw new UnauthorizedError('E-mail ou senha invalidos');
     }
 
     // Check if user is active
     if (!user.isActive) {
-      throw new UnauthorizedError('Account is disabled');
+      throw new UnauthorizedError('Conta desativada');
     }
 
     // Verify password
     const isValidPassword = await user.checkPassword(data.password);
     if (!isValidPassword) {
-      throw new UnauthorizedError('Invalid email or password');
+      throw new UnauthorizedError('E-mail ou senha invalidos');
     }
 
     // Update last login
@@ -83,7 +93,7 @@ class AuthService {
     return {
       accessToken,
       refreshToken,
-      user: user.toSafeObject(),
+      user: user.toSafeObject() as SafeUser,
     };
   }
 
@@ -96,20 +106,20 @@ class AuthService {
     });
 
     if (!storedToken) {
-      throw new UnauthorizedError('Invalid refresh token');
+      throw new UnauthorizedError('Token de atualizacao invalido');
     }
 
     // Check if token is expired
     if (storedToken.isExpired()) {
       await storedToken.destroy();
-      throw new UnauthorizedError('Refresh token expired');
+      throw new UnauthorizedError('Token de atualizacao expirado');
     }
 
     // Get user from the token
     const user = await User.findByPk(storedToken.userId);
     if (!user || !user.isActive) {
       await storedToken.destroy();
-      throw new UnauthorizedError('User not found or inactive');
+      throw new UnauthorizedError('Usuario nao encontrado ou inativo');
     }
 
     // Generate new access token
@@ -129,9 +139,9 @@ class AuthService {
   }
 
   // Get user by ID
-  async getUserById(userId: number): Promise<Omit<User, 'passwordHash'> | null> {
+  async getUserById(userId: number): Promise<SafeUser | null> {
     const user = await User.findByPk(userId);
-    return user ? user.toSafeObject() : null;
+    return user ? user.toSafeObject() as SafeUser : null;
   }
 
   // Generate access token (short-lived)
@@ -143,7 +153,7 @@ class AuthService {
     };
 
     return jwt.sign(payload, config.jwt.secret, {
-      expiresIn: config.jwt.accessExpiry,
+      expiresIn: config.jwt.accessExpiry as jwt.SignOptions['expiresIn'],
     });
   }
 
@@ -152,7 +162,7 @@ class AuthService {
     const payload = { userId: user.id, type: 'refresh' };
 
     const token = jwt.sign(payload, config.jwt.refreshSecret, {
-      expiresIn: config.jwt.refreshExpiry,
+      expiresIn: config.jwt.refreshExpiry as jwt.SignOptions['expiresIn'],
     });
 
     // Calculate expiry date
@@ -174,7 +184,7 @@ class AuthService {
     try {
       return jwt.verify(token, config.jwt.secret) as JwtPayload;
     } catch (error) {
-      throw new UnauthorizedError('Invalid or expired token');
+      throw new UnauthorizedError('Token invalido ou expirado');
     }
   }
 
@@ -188,7 +198,7 @@ class AuthService {
         name: 'Administrator',
         role: 'admin',
       });
-      console.log('Default admin user created: admin@torrentflix.local / admin123');
+      console.log('Usuario admin padrao criado: admin@torrentflix.local / admin123');
     }
   }
 }

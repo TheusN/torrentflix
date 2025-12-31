@@ -1,4 +1,5 @@
-import axios, { AxiosInstance, AxiosError, InternalAxiosRequestConfig } from 'axios';
+import axios, { AxiosError } from 'axios';
+import type { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
@@ -11,10 +12,14 @@ export const apiClient: AxiosInstance = axios.create({
   timeout: 30000,
 });
 
+// Token keys - must match AuthContext
+const ACCESS_TOKEN_KEY = 'torrentflix_access_token';
+const REFRESH_TOKEN_KEY = 'torrentflix_refresh_token';
+
 // Request interceptor - add auth token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('accessToken');
+    const token = localStorage.getItem(ACCESS_TOKEN_KEY);
     if (token && config.headers) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -36,7 +41,7 @@ apiClient.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const refreshToken = localStorage.getItem('refreshToken');
+        const refreshToken = localStorage.getItem(REFRESH_TOKEN_KEY);
         if (!refreshToken) {
           throw new Error('No refresh token');
         }
@@ -46,7 +51,7 @@ apiClient.interceptors.response.use(
         });
 
         const { accessToken } = response.data.data;
-        localStorage.setItem('accessToken', accessToken);
+        localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
 
         // Retry original request with new token
         if (originalRequest.headers) {
@@ -55,9 +60,9 @@ apiClient.interceptors.response.use(
         return apiClient(originalRequest);
       } catch (refreshError) {
         // Refresh failed - clear tokens and redirect to login
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        window.location.href = '/login';
+        localStorage.removeItem(ACCESS_TOKEN_KEY);
+        localStorage.removeItem(REFRESH_TOKEN_KEY);
+        window.location.href = '/entrar';
         return Promise.reject(refreshError);
       }
     }

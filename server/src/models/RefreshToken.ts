@@ -16,11 +16,11 @@ export interface RefreshTokenCreationAttributes extends Optional<RefreshTokenAtt
 
 // RefreshToken model class
 export class RefreshToken extends Model<RefreshTokenAttributes, RefreshTokenCreationAttributes> implements RefreshTokenAttributes {
-  public id!: number;
-  public userId!: number;
-  public token!: string;
-  public expiresAt!: Date;
-  public createdAt!: Date;
+  declare id: number;
+  declare userId: number;
+  declare token: string;
+  declare expiresAt: Date;
+  declare createdAt: Date;
 
   // Check if token is expired
   public isExpired(): boolean {

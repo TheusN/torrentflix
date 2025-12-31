@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Teste de Login - Torrentflix</title>
+  <style>
+    body { font-family: Arial; background: #1a1a1a; color: white; padding: 20px; }
+    .result { background: #333; padding: 15px; margin: 10px 0; border-radius: 8px; white-space: pre-wrap; }
+    .success { border-left: 4px solid #22c55e; }
+    .error { border-left: 4px solid #ef4444; }
+    button { background: #dc2626; color: white; border: none; padding: 10px 20px; cursor: pointer; border-radius: 6px; }
+    input { padding: 10px; margin: 5px 0; width: 300px; border-radius: 6px; border: 1px solid #444; background: #222; color: white; }
+  </style>
+</head>
+<body>
+  <h1>Teste de Login - Torrentflix</h1>
+
+  <div>
+    <input type="email" id="email" value="admin@torrentflix.local" placeholder="E-mail">
+    <br>
+    <input type="password" id="password" value="admin123" placeholder="Senha">
+    <br><br>
+    <button onclick="testarLogin()">Testar Login</button>
+    <button onclick="testarLoginFetch()">Testar com Fetch</button>
+    <button onclick="limparStorage()">Limpar Storage</button>
+  </div>
+
+  <div id="resultado"></div>
+
+  <script>
+    const API_URL = 'http://localhost:3000/api';
+
+    async function testarLogin() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const resultado = document.getElementById('resultado');
+
+      resultado.innerHTML = '<div class="result">Testando login...</div>';
+
+      try {
+        const response = await fetch(`${API_URL}/auth/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password }),
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          // Salvar tokens como o frontend faz
+          localStorage.setItem('torrentflix_access_token', data.data.accessToken);
+          localStorage.setItem('torrentflix_refresh_token', data.data.refreshToken);
+
+          resultado.innerHTML = `
+            <div class="result success">
+              <strong>LOGIN BEM SUCEDIDO!</strong>
+
+Status: ${response.status}
+Mensagem: ${data.message}
+
+Usuario: ${data.data.user.name}
+Email: ${data.data.user.email}
+Role: ${data.data.user.role}
+
+Access Token salvo: ${data.data.accessToken.substring(0, 50)}...
+Refresh Token salvo: ${data.data.refreshToken.substring(0, 50)}...
+
+Tokens salvos no localStorage!
+Agora voce pode ir para: <a href="http://localhost:5174/app/inicio" style="color: #22c55e">http://localhost:5174/app/inicio</a>
+            </div>
+          `;
+        } else {
+          resultado.innerHTML = `
+            <div class="result error">
+              <strong>ERRO NO LOGIN</strong>
+
+Status: ${response.status}
+Erro: ${JSON.stringify(data, null, 2)}
+            </div>
+          `;
+        }
+      } catch (error) {
+        resultado.innerHTML = `
+          <div class="result error">
+            <strong>ERRO DE CONEXAO</strong>
+
+Erro: ${error.message}
+
+Verifique se o servidor backend esta rodando em http://localhost:3000
+          </div>
+        `;
+      }
+    }
+
+    async function testarLoginFetch() {
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const resultado = document.getElementById('resultado');
+
+      resultado.innerHTML = '<div class="result">Testando com fetch detalhado...</div>';
+
+      try {
+        console.log('Enviando para:', `${API_URL}/auth/login`);
+        console.log('Body:', JSON.stringify({ email, password }));
+
+        const response = await fetch(`${API_URL}/auth/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email, password }),
+        });
+
+        console.log('Response status:', response.status);
+        console.log('Response headers:', [...response.headers.entries()]);
+
+        const text = await response.text();
+        console.log('Response text:', text);
+
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          data = { raw: text };
+        }
+
+        resultado.innerHTML = `
+          <div class="result ${response.ok ? 'success' : 'error'}">
+            <strong>RESPOSTA DETALHADA</strong>
+
+URL: ${API_URL}/auth/login
+Status: ${response.status} ${response.statusText}
+OK: ${response.ok}
+
+Headers:
+${[...response.headers.entries()].map(([k, v]) => `  ${k}: ${v}`).join('\n')}
+
+Body:
+${JSON.stringify(data, null, 2)}
+          </div>
+        `;
+
+        if (data.success && data.data) {
+          localStorage.setItem('torrentflix_access_token', data.data.accessToken);
+          localStorage.setItem('torrentflix_refresh_token', data.data.refreshToken);
+          resultado.innerHTML += '<div class="result success">Tokens salvos no localStorage!</div>';
+        }
+      } catch (error) {
+        resultado.innerHTML = `
+          <div class="result error">
+            <strong>ERRO</strong>
+
+${error.name}: ${error.message}
+Stack: ${error.stack}
+          </div>
+        `;
+      }
+    }
+
+    function limparStorage() {
+      localStorage.removeItem('torrentflix_access_token');
+      localStorage.removeItem('torrentflix_refresh_token');
+      document.getElementById('resultado').innerHTML = '<div class="result success">localStorage limpo!</div>';
+    }
+
+    // Mostrar estado atual
+    document.getElementById('resultado').innerHTML = `
+      <div class="result">
+        <strong>Estado Atual do localStorage:</strong>
+
+access_token: ${localStorage.getItem('torrentflix_access_token') ? 'EXISTE' : 'NAO EXISTE'}
+refresh_token: ${localStorage.getItem('torrentflix_refresh_token') ? 'EXISTE' : 'NAO EXISTE'}
+      </div>
+    `;
+  </script>
+</body>
+</html>
