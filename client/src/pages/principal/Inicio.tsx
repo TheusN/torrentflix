@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import {
   Play,
@@ -247,7 +247,6 @@ function SecaoCarrossel({
 }
 
 export default function Inicio() {
-  const navigate = useNavigate();
   const [destaque, setDestaque] = useState<any>(null);
   const [muted, setMuted] = useState(true);
   const [selectedMedia, setSelectedMedia] = useState<MediaItem | null>(null);
@@ -337,7 +336,7 @@ export default function Inicio() {
     title: s.title,
     overview: s.overview || '',
     poster: s.poster,
-    backdrop: s.fanart,
+    backdrop: s.banner,
     year: s.year,
     rating: s.ratings?.value,
     type: 'series' as const,

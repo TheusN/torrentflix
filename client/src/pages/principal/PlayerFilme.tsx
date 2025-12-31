@@ -15,7 +15,6 @@ import {
   RotateCcw,
   RotateCw,
   Loader2,
-  Settings,
 } from 'lucide-react';
 import { apiClient } from '../../api/client';
 import { formatBytes } from '../../api/downloads.api';

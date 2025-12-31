@@ -7,14 +7,10 @@ import {
   Pause,
   Volume2,
   VolumeX,
-  Volume1,
   Maximize,
   Minimize,
   SkipBack,
   SkipForward,
-  RefreshCw,
-  Settings,
-  ChevronRight,
   RotateCcw,
   RotateCw,
   Loader2
@@ -36,14 +32,12 @@ export default function Player() {
   const [mostrarControles, setMostrarControles] = useState(true);
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
-  const [velocidade, setVelocidade] = useState(1);
-  const [mostrarConfiguracao, setMostrarConfiguracao] = useState(false);
+  const [velocidade] = useState(1);
   const [buffered, setBuffered] = useState(0);
   const [doubleClickTimer, setDoubleClickTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
   const [showSkipIndicator, setShowSkipIndicator] = useState<'left' | 'right' | null>(null);
 
   const controlesTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const velocidades = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2];
 
   // Buscar informacoes do arquivo
   const { data: filesData } = useQuery({
@@ -58,9 +52,6 @@ export default function Player() {
   const currentPlayableIndex = arquivosPlayable.findIndex(f => f.index === currentFileIdx);
   const proximoArquivo = currentPlayableIndex >= 0 && currentPlayableIndex < arquivosPlayable.length - 1
     ? arquivosPlayable[currentPlayableIndex + 1]
-    : null;
-  const arquivoAnterior = currentPlayableIndex > 0
-    ? arquivosPlayable[currentPlayableIndex - 1]
     : null;
   const streamUrl = hash && fileIndex ? `/api/stream/${hash}/${fileIndex}` : '';
 
@@ -145,14 +136,6 @@ export default function Player() {
       setTimeout(() => setShowSkipIndicator(null), 500);
     }
   }, [tempoAtual, duracao]);
-
-  // Alterar velocidade
-  const alterarVelocidade = useCallback((novaVelocidade: number) => {
-    if (videoRef.current) {
-      videoRef.current.playbackRate = novaVelocidade;
-      setVelocidade(novaVelocidade);
-    }
-  }, []);
 
   // Navegar para proximo/anterior arquivo
   const irParaArquivo = useCallback((arquivo: typeof proximoArquivo) => {

@@ -19,7 +19,6 @@ import {
 } from 'lucide-react';
 import { getImageUrl } from '../api/tmdb.api';
 import { downloadsApi, formatBytes, getStateLabel } from '../api/downloads.api';
-import type { TorrentInfo, TorrentFile } from '../api/downloads.api';
 
 interface MediaItem {
   id: number;
@@ -66,7 +65,6 @@ export default function ModalMidia({ media, onClose }: ModalMidiaProps) {
   const [muted, setMuted] = useState(true);
   const [inMyList, setInMyList] = useState(false);
   const [showFileSelector, setShowFileSelector] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<VideoFile | null>(null);
 
   // Buscar torrents disponíveis
   const { data: torrentsData, isLoading: loadingTorrents } = useQuery({
@@ -169,7 +167,6 @@ export default function ModalMidia({ media, onClose }: ModalMidiaProps) {
   };
 
   const backdrop = media.backdrop || getImageUrl(media.backdrop, 'original');
-  const poster = media.poster || getImageUrl(media.poster, 'w500');
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto">
@@ -342,7 +339,7 @@ export default function ModalMidia({ media, onClose }: ModalMidiaProps) {
 
               {showFileSelector && (
                 <div className="mt-4 space-y-2">
-                  {torrentsData?.videoFiles?.map((file, i) => (
+                  {torrentsData?.videoFiles?.map((file) => (
                     <button
                       key={`${file.hash}-${file.fileIndex}`}
                       onClick={() => handlePlayFile(file)}

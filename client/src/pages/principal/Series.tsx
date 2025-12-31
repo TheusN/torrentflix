@@ -34,7 +34,7 @@ function converterParaMediaItem(serie: SonarrSeries): MediaItem {
     title: serie.title,
     overview: serie.overview || '',
     poster: serie.poster,
-    backdrop: serie.fanart,
+    backdrop: serie.banner,
     year: serie.year,
     rating: serie.ratings?.value,
     genres: serie.genres,
