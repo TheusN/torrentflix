@@ -7,15 +7,8 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
-    expose:
-      - "3000"
-    networks:
-      - default
-      - easypanel
-    labels:
-      - "traefik.enable=true"
-      - "traefik.http.services.torrentflix.loadbalancer.server.port=3000"
-      - "traefik.docker.network=easypanel"
+    ports:
+      - "3000:3000"
     environment:
       - NODE_ENV=production
       - PORT=3000
@@ -72,7 +65,3 @@ services:
 volumes:
   postgres_data:
   downloads:
-
-networks:
-  easypanel:
-    external: true
