@@ -14,9 +14,6 @@ services:
       - easypanel
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.torrentflix.rule=Host(`torrentflix.omniwhats.com`)"
-      - "traefik.http.routers.torrentflix.entrypoints=websecure"
-      - "traefik.http.routers.torrentflix.tls.certresolver=letsencrypt"
       - "traefik.http.services.torrentflix.loadbalancer.server.port=3000"
       - "traefik.docker.network=easypanel"
     environment:
