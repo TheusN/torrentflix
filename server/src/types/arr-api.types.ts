@@ -12,6 +12,14 @@ export interface RootFolder {
   freeSpace: number;
 }
 
+// Remote Path Mapping - mapeamento de caminhos configurado no Sonarr/Radarr
+export interface RemotePathMapping {
+  id: number;
+  host: string;
+  remotePath: string;
+  localPath: string;
+}
+
 export interface QueueItem {
   id: number;
   title: string;

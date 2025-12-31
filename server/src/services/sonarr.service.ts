@@ -7,6 +7,7 @@ import {
   SonarrAddSeriesRequest,
   QualityProfile,
   RootFolder,
+  RemotePathMapping,
   QueueItem,
   SeriesInfo,
   transformSeries,
@@ -140,6 +141,11 @@ class SonarrService {
   // Get root folders
   async getRootFolders(): Promise<RootFolder[]> {
     return this.request<RootFolder[]>('/api/v3/rootfolder');
+  }
+
+  // Get remote path mappings - mapeamentos configurados no Sonarr
+  async getRemotePathMappings(): Promise<RemotePathMapping[]> {
+    return this.request<RemotePathMapping[]>('/api/v3/remotepathmapping');
   }
 
   // Get queue

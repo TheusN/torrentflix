@@ -7,6 +7,7 @@ import {
   RadarrAddMovieRequest,
   QualityProfile,
   RootFolder,
+  RemotePathMapping,
   QueueItem,
   MovieInfo,
   transformMovie,
@@ -145,6 +146,11 @@ class RadarrService {
   // Get root folders
   async getRootFolders(): Promise<RootFolder[]> {
     return this.request<RootFolder[]>('/api/v3/rootfolder');
+  }
+
+  // Get remote path mappings - mapeamentos configurados no Radarr
+  async getRemotePathMappings(): Promise<RemotePathMapping[]> {
+    return this.request<RemotePathMapping[]>('/api/v3/remotepathmapping');
   }
 
   // Get queue

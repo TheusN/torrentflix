@@ -12,7 +12,9 @@ import {
   Key,
   Globe,
   FolderSync,
-  HelpCircle
+  HelpCircle,
+  Wand2,
+  Info
 } from 'lucide-react';
 import { apiClient } from '../../api/client';
 
@@ -44,6 +46,21 @@ interface Configuracoes {
     apiKey: string;
   };
   mapeamentoCaminhos: MapeamentoCaminhos;
+}
+
+// Tipos para mapeamentos remotos
+interface MapeamentoRemoto {
+  source: 'radarr' | 'sonarr';
+  id: number;
+  host: string;
+  remotePath: string;
+  localPath: string;
+}
+
+interface RootFolderRemoto {
+  source: 'radarr' | 'sonarr';
+  path: string;
+  freeSpace: number;
 }
 
 // API functions
@@ -132,6 +149,14 @@ const configApi = {
       sucesso: data.success || false,
       mensagem: data.message || 'Erro desconhecido',
     };
+  },
+  buscarMapeamentos: async (): Promise<{
+    mappings: MapeamentoRemoto[];
+    rootFolders: RootFolderRemoto[];
+    message: string;
+  }> => {
+    const response = await apiClient.get('/admin/configuracoes/mapeamentos');
+    return response.data.data || response.data;
   },
 };
 
@@ -240,6 +265,11 @@ export default function Configuracoes() {
   });
   const [resultadosTeste, setResultadosTeste] = useState<Record<string, { sucesso: boolean; mensagem: string } | null>>({});
   const [testando, setTestando] = useState<string | null>(null);
+  const [detectando, setDetectando] = useState(false);
+  const [mapeamentosDetectados, setMapeamentosDetectados] = useState<{
+    mappings: MapeamentoRemoto[];
+    rootFolders: RootFolderRemoto[];
+  } | null>(null);
 
   // Valores padrao
   const configPadrao: Configuracoes = {
@@ -314,6 +344,46 @@ export default function Configuracoes() {
 
   const handleSalvar = () => {
     salvarMutation.mutate(config);
+  };
+
+  const handleDetectarMapeamentos = async () => {
+    setDetectando(true);
+    setMapeamentosDetectados(null);
+    try {
+      const resultado = await configApi.buscarMapeamentos();
+      setMapeamentosDetectados({
+        mappings: resultado.mappings,
+        rootFolders: resultado.rootFolders,
+      });
+
+      // Se encontrou mapeamentos, preencher automaticamente o primeiro
+      if (resultado.mappings.length > 0) {
+        const primeiro = resultado.mappings[0];
+        setConfig(prev => ({
+          ...prev,
+          mapeamentoCaminhos: {
+            habilitado: true,
+            caminhoRemoto: primeiro.remotePath,
+            caminhoLocal: primeiro.localPath,
+          },
+        }));
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.error?.message || 'Erro ao detectar mapeamentos');
+    } finally {
+      setDetectando(false);
+    }
+  };
+
+  const handleUsarMapeamento = (mapping: MapeamentoRemoto) => {
+    setConfig(prev => ({
+      ...prev,
+      mapeamentoCaminhos: {
+        habilitado: true,
+        caminhoRemoto: mapping.remotePath,
+        caminhoLocal: mapping.localPath,
+      },
+    }));
   };
 
   if (isLoading) {
@@ -597,6 +667,106 @@ export default function Configuracoes() {
             }`} />
           </button>
         </div>
+
+        {/* Botao de Deteccao Automatica */}
+        <div className="p-4 rounded-lg bg-blue-500/10 border border-blue-500/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Wand2 className="w-5 h-5 text-blue-400" />
+              <div>
+                <p className="text-sm font-medium text-blue-300">Detectar do Radarr/Sonarr</p>
+                <p className="text-xs text-blue-400/70">
+                  Importa os mapeamentos ja configurados no Radarr ou Sonarr
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleDetectarMapeamentos}
+              disabled={detectando}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              {detectando ? (
+                <RefreshCw className="w-4 h-4 animate-spin" />
+              ) : (
+                <Wand2 className="w-4 h-4" />
+              )}
+              Detectar
+            </button>
+          </div>
+        </div>
+
+        {/* Mapeamentos Detectados */}
+        {mapeamentosDetectados && (
+          <div className="space-y-3">
+            {mapeamentosDetectados.mappings.length > 0 ? (
+              <>
+                <p className="text-sm text-zinc-400 flex items-center gap-2">
+                  <Check className="w-4 h-4 text-green-500" />
+                  {mapeamentosDetectados.mappings.length} mapeamento(s) encontrado(s)
+                </p>
+                {mapeamentosDetectados.mappings.map((mapping) => (
+                  <div
+                    key={`${mapping.source}-${mapping.id}`}
+                    className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700"
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs font-medium px-2 py-0.5 rounded bg-zinc-700 text-zinc-300 uppercase">
+                        {mapping.source}
+                      </span>
+                      <button
+                        onClick={() => handleUsarMapeamento(mapping)}
+                        className="text-xs text-blue-400 hover:text-blue-300"
+                      >
+                        Usar este
+                      </button>
+                    </div>
+                    <div className="text-sm space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-zinc-500">Remoto:</span>
+                        <code className="bg-zinc-900 px-2 py-0.5 rounded text-zinc-300">{mapping.remotePath}</code>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-zinc-500">Local:</span>
+                        <code className="bg-zinc-900 px-2 py-0.5 rounded text-zinc-300">{mapping.localPath}</code>
+                      </div>
+                      {mapping.host && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-zinc-500">Host:</span>
+                          <code className="bg-zinc-900 px-2 py-0.5 rounded text-zinc-300">{mapping.host}</code>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <div className="p-3 rounded-lg bg-zinc-800/50 border border-zinc-700 flex items-center gap-2">
+                <Info className="w-5 h-5 text-zinc-500" />
+                <span className="text-sm text-zinc-400">
+                  Nenhum mapeamento configurado no Radarr/Sonarr. Configure manualmente abaixo.
+                </span>
+              </div>
+            )}
+
+            {/* Root Folders encontrados */}
+            {mapeamentosDetectados.rootFolders.length > 0 && (
+              <div className="pt-2 border-t border-zinc-800">
+                <p className="text-xs text-zinc-500 mb-2">Pastas Raiz configuradas:</p>
+                <div className="flex flex-wrap gap-2">
+                  {mapeamentosDetectados.rootFolders.map((folder, index) => (
+                    <span
+                      key={`${folder.source}-${index}`}
+                      className="text-xs px-2 py-1 rounded bg-zinc-800 text-zinc-400"
+                    >
+                      {folder.source}: {folder.path}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         <div>
           <label className="block text-sm font-medium text-zinc-400 mb-2">
             Caminho Remoto (qBittorrent)

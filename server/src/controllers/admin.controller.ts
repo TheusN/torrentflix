@@ -469,6 +469,96 @@ export class AdminController {
     }
   }
 
+  // ==================== MAPEAMENTOS DE CAMINHO ====================
+
+  async getRemotePathMappings(req: Request, res: Response, next: NextFunction) {
+    try {
+      const mappings: Array<{
+        source: 'radarr' | 'sonarr';
+        id: number;
+        host: string;
+        remotePath: string;
+        localPath: string;
+      }> = [];
+
+      // Tentar obter mapeamentos do Radarr
+      try {
+        radarrService.clearCache();
+        const radarrMappings = await radarrService.getRemotePathMappings();
+        for (const m of radarrMappings) {
+          mappings.push({
+            source: 'radarr',
+            id: m.id,
+            host: m.host,
+            remotePath: m.remotePath,
+            localPath: m.localPath,
+          });
+        }
+      } catch (error: any) {
+        // Radarr não disponível ou não configurado
+      }
+
+      // Tentar obter mapeamentos do Sonarr
+      try {
+        sonarrService.clearCache();
+        const sonarrMappings = await sonarrService.getRemotePathMappings();
+        for (const m of sonarrMappings) {
+          mappings.push({
+            source: 'sonarr',
+            id: m.id,
+            host: m.host,
+            remotePath: m.remotePath,
+            localPath: m.localPath,
+          });
+        }
+      } catch (error: any) {
+        // Sonarr não disponível ou não configurado
+      }
+
+      // Também buscar root folders para referência
+      const rootFolders: Array<{
+        source: 'radarr' | 'sonarr';
+        path: string;
+        freeSpace: number;
+      }> = [];
+
+      try {
+        const radarrRoots = await radarrService.getRootFolders();
+        for (const r of radarrRoots) {
+          rootFolders.push({
+            source: 'radarr',
+            path: r.path,
+            freeSpace: r.freeSpace,
+          });
+        }
+      } catch {}
+
+      try {
+        const sonarrRoots = await sonarrService.getRootFolders();
+        for (const r of sonarrRoots) {
+          rootFolders.push({
+            source: 'sonarr',
+            path: r.path,
+            freeSpace: r.freeSpace,
+          });
+        }
+      } catch {}
+
+      res.json({
+        success: true,
+        data: {
+          mappings,
+          rootFolders,
+          message: mappings.length > 0
+            ? `Encontrados ${mappings.length} mapeamento(s) configurado(s)`
+            : 'Nenhum mapeamento remoto configurado no Radarr/Sonarr',
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   // ==================== ESTATÍSTICAS ====================
 
   async getSystemStats(req: Request, res: Response, next: NextFunction) {

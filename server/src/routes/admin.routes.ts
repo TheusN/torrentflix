@@ -23,6 +23,7 @@ router.delete('/usuarios/:id', adminController.deleteUser);
 router.get('/configuracoes', adminController.getSettings);
 router.put('/configuracoes', adminController.updateSettings);
 router.get('/configuracoes/testar/:service', adminController.testConnection);
+router.get('/configuracoes/mapeamentos', adminController.getRemotePathMappings);
 
 // Logs de Atividade
 router.get('/logs', adminController.getLogs);
